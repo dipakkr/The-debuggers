@@ -56,6 +56,30 @@ export interface ScenarioOutcome {
   n_fraud: number;
   n_flagged: number;
   attack_success_rate: number;
+  risk_max: number;
+  risk_median: number;
+  top_reasons: string[];
+  /** feature medians over the FALSE NEGATIVES (allowed fraud txs) — blue team evidence */
+  fn_feature_medians: Record<string, number>;
+}
+
+const FN_FEATURES = [
+  "amt_z",
+  "vel_24h",
+  "hour_outside_pref",
+  "new_device",
+  "new_merchant",
+  "young_account",
+  "escalation_score",
+  "pattern_score",
+  "newcomer_count_48h",
+  "newcomer_burst_score",
+] as const;
+
+function medianOf(xs: number[]): number {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
 }
 
 export interface EvalRun {
@@ -97,11 +121,27 @@ export function refereeEvaluate(
 
   const per_scenario: ScenarioOutcome[] = scenarios.map((s) => {
     const rows = evalSet.filter((r) => r.tx.scenario_id === s.scenario_id && r.tx.ground_truth === "fraud");
+    const risks = rows.map((r) => r.out.risk_score).sort((a, b) => a - b);
+    const freq = new Map<string, number>();
+    for (const r of rows) {
+      if (r.out.decision === "allow") continue;
+      for (const rc of r.out.reason_codes) freq.set(rc, (freq.get(rc) ?? 0) + 1);
+    }
+    const top_reasons = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+    const fnRows = rows.filter((r) => r.out.decision === "allow");
+    const fn_feature_medians: Record<string, number> = {};
+    for (const k of FN_FEATURES) {
+      fn_feature_medians[k] = Math.round(medianOf(fnRows.map((r) => r.f[k] as number)) * 1000) / 1000;
+    }
     return {
       scenario_id: s.scenario_id,
       n_fraud: rows.length,
       n_flagged: rows.filter((r) => r.out.decision !== "allow").length,
       attack_success_rate: attackSuccessRate(rows),
+      risk_max: risks[risks.length - 1] ?? 0,
+      risk_median: risks[Math.floor(risks.length / 2)] ?? 0,
+      top_reasons,
+      fn_feature_medians,
     };
   });
 
@@ -153,32 +193,45 @@ export function replayPair(
 
 function perScenarioOf(spec: ScenarioSpec, evalSet: ScoredTx[]): ScenarioOutcome[] {
   const rows = evalSet.filter((r) => r.tx.scenario_id === spec.scenario_id && r.tx.ground_truth === "fraud");
+  const risks = rows.map((r) => r.out.risk_score).sort((a, b) => a - b);
+  const freq = new Map<string, number>();
+  for (const r of rows) {
+    if (r.out.decision === "allow") continue;
+    for (const rc of r.out.reason_codes) freq.set(rc, (freq.get(rc) ?? 0) + 1);
+  }
+  const fnRows = rows.filter((r) => r.out.decision === "allow");
+  const fn_feature_medians: Record<string, number> = {};
+  for (const k of FN_FEATURES) {
+    fn_feature_medians[k] = Math.round(medianOf(fnRows.map((r) => r.f[k] as number)) * 1000) / 1000;
+  }
   return [
     {
       scenario_id: spec.scenario_id,
       n_fraud: rows.length,
       n_flagged: rows.filter((r) => r.out.decision !== "allow").length,
       attack_success_rate: attackSuccessRate(rows),
+      risk_max: risks[risks.length - 1] ?? 0,
+      risk_median: risks[Math.floor(risks.length / 2)] ?? 0,
+      top_reasons: [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k),
+      fn_feature_medians,
     },
   ];
 }
 
-/** Deterministic defense acceptance gate — thresholds are policy, not vibes. */
+/** Deterministic defense acceptance gate — thresholds are policy, not vibes.
+ *  recallGain is measured against the DISCOVERED THREAT CLASS (fresh-seed
+ *  recompiles of the blind-spot genome), not diluted by template scenarios. */
 export function gateDecision(
-  base: EvalRun,
-  candidate: EvalRun,
+  threatRecallGain: number,
+  fprDelta: number,
   freshSeedsSurvived: number,
   totalFreshSeeds: number
 ): { accepted: boolean; reasons: string[] } {
   const reasons: string[] = [];
-  const recallGain = candidate.metrics.fraud_recall - base.metrics.fraud_recall;
-  const fprDelta = candidate.metrics.fpr - base.metrics.fpr;
-
-  if (recallGain < 0.05) reasons.push(`recall_gain_${recallGain.toFixed(3)}_below_+5pts`);
+  if (threatRecallGain < 0.05) reasons.push(`threat_recall_gain_${(threatRecallGain * 100).toFixed(1)}pts_below_+5pts`);
   if (fprDelta > 0.01) reasons.push(`fpr_delta_+${(fprDelta * 100).toFixed(2)}pts_above_1pt`);
-  if (freshSeedsSurvived / Math.max(1, totalFreshSeeds) < 0.8)
+  if (totalFreshSeeds > 0 && freshSeedsSurvived / totalFreshSeeds < 0.8)
     reasons.push(`survived_${freshSeedsSurvived}/${totalFreshSeeds}_below_80%`);
-
   return { accepted: reasons.length === 0, reasons };
 }
 

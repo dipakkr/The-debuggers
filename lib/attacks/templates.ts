@@ -57,19 +57,21 @@ export const TEMPLATE_GENOMES: Genome[] = [
   },
 ];
 
-const NUM_DIMS: [keyof Genome | string, number][] = [
-  ["amount.base", 2000],
-  ["amount.jitter", 0.6],
-  ["amount.drain_multiplier", 50],
-  ["velocity.tx_per_hour", 40],
-  ["temporal.start_hour_utc", 23],
-  ["temporal.span_hours", 336],
-  ["device.age_days", 3650],
-  ["device.geo_jump_km", 20000],
-  ["identity.account_age_days", 3650],
-  ["sequence.probe_count", 20],
-  ["sequence.interarrival_s", 604800],
-  ["sequence.regularity", 1],
+// [path, logScale, normalizer] — multiplicative dims compare on log scale so
+// order-of-magnitude behavioural shifts register as real distance.
+const NUM_DIMS: { path: string; log: boolean; norm: number }[] = [
+  { path: "amount.base", log: true, norm: Math.log(2000) },
+  { path: "amount.jitter", log: false, norm: 0.6 },
+  { path: "amount.drain_multiplier", log: true, norm: Math.log(50) },
+  { path: "velocity.tx_per_hour", log: true, norm: Math.log(40) },
+  { path: "temporal.start_hour_utc", log: false, norm: 23 },
+  { path: "temporal.span_hours", log: true, norm: Math.log(336) },
+  { path: "device.age_days", log: true, norm: Math.log(3651) },
+  { path: "device.geo_jump_km", log: false, norm: 20000 },
+  { path: "identity.account_age_days", log: true, norm: Math.log(3651) },
+  { path: "sequence.probe_count", log: false, norm: 20 },
+  { path: "sequence.interarrival_s", log: true, norm: Math.log(60480) },
+  { path: "sequence.regularity", log: false, norm: 1 },
 ];
 const CAT_DIMS: [string, keyof Genome][] = [
   ["merchant.mcc", "merchant"],
@@ -82,10 +84,20 @@ function get(g: Genome, path: string): number {
   return (g as unknown as Record<string, Record<string, number>>)[a][b];
 }
 
-/** Normalised behavioural distance in [0, ~15]. */
+/** Normalised behavioural distance in [0, ~15]; log-scaled where it matters. */
 export function genomeDistance(a: Genome, b: Genome): number {
   let d = 0;
-  for (const [path, range] of NUM_DIMS) d += Math.abs(get(a, path) - get(b, path)) / range;
+  for (const dim of NUM_DIMS) {
+    const va = get(a, dim.path);
+    const vb = get(b, dim.path);
+    if (dim.log) {
+      const la = Math.log(Math.max(1e-6, va));
+      const lb = Math.log(Math.max(1e-6, vb));
+      d += Math.abs(la - lb) / dim.norm;
+    } else {
+      d += Math.abs(va - vb) / dim.norm;
+    }
+  }
   for (const [path, obj] of CAT_DIMS) {
     if ((a[obj] as unknown as Record<string, unknown>)[path.split(".")[1]] !== (b[obj] as unknown as Record<string, unknown>)[path.split(".")[1]]) d += 1;
   }

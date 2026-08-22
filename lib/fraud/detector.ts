@@ -60,6 +60,7 @@ export function scoreFeaturized(
   const scored: ScoredTx[] = [];
   const latencies: number[] = [];
   for (const item of items) {
+    let holdForReview = false;
     const t0 = performance.now();
     let logit = model.b;
     const contribs: [string, number][] = [];
@@ -73,12 +74,18 @@ export function scoreFeaturized(
     if (defense) {
       const escC = defense.escalation_weight * 4 * item.f.escalation_score;
       const patC = defense.pattern_weight * 4 * item.f.pattern_score;
-      const graphC =
-        defense.graph_gate === "on" && item.f.fan_out_24h >= 4 && item.f.young_account === 1 ? 1.2 : 0;
+      // deadzone until coordination is strong, then steep ramp
+      const b = item.f.newcomer_burst_score;
+      const graphC = b > 0.5 ? defense.graph_weight * 4 * Math.min(1, (b - 0.5) * 4) : 0;
       if (escC > 0.15) contribs.push(["SPEND_ESCALATION", escC]);
       if (patC > 0.15) contribs.push(["CAMOUFLAGE_PATTERN", patC]);
-      if (graphC > 0) contribs.push(["MULE_FANOUT_GRAPH", graphC]);
+      if (graphC > 0.15) contribs.push(["NEWCOMER_BURST_GRAPH", graphC]);
       logit += escC + patC + graphC;
+
+      // hard policy rule: unmistakable coordinated newcomer burst => hold.
+      // Calibrated so legitimate traffic essentially never trips it.
+      // cohortSize counts self when self is a first-touch, hence nc >= 2.
+      if (b >= 0.75 && item.f.newcomer_count_48h >= 2) holdForReview = true;
     }
 
     const risk = sigmoid(logit);
@@ -99,6 +106,12 @@ export function scoreFeaturized(
       decision = "review";
       if (item.tx.amount >= 2500 && !reasons.includes("AMOUNT_CEILING")) reasons.unshift("AMOUNT_CEILING");
     } else decision = "allow";
+
+    // v2 hard rule upgrades an allow to a review hold
+    if (holdForReview && decision === "allow") {
+      decision = "review";
+      reasons.unshift("NEWCOMER_BURST_HELD");
+    }
 
     const latency_ms = performance.now() - t0;
     latencies.push(latency_ms);

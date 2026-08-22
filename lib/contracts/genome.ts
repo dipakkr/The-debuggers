@@ -85,6 +85,9 @@ export interface TxFeatures {
   escalation_score: number;
   pattern_score: number;
   fan_out_24h: number;
+  /** distinct OTHER customers whose FIRST-EVER payment at this merchant
+   *  occurred within the trailing 48h — a bipartite graph burst signal. */
+  newcomer_count_48h: number;
 }
 
 export type TxKind = "backdrop" | "warmup" | "attack";
@@ -111,10 +114,18 @@ export const DefenseConfigSchema = z
     threshold: z.number().min(0.2).max(0.95),
     escalation_weight: z.number().min(0).max(0.6),
     pattern_weight: z.number().min(0).max(0.6),
-    graph_gate: z.enum(["off", "on"]),
+    graph_weight: z.number().min(0).max(0.6),
   })
   .strict();
 export type DefenseConfig = z.infer<typeof DefenseConfigSchema>;
+
+/** v1 baseline expressed as a (no-op) defense config. */
+export const V1_AS_DEFENSE = (thresholdBlock: number): DefenseConfig => ({
+  threshold: thresholdBlock,
+  escalation_weight: 0,
+  pattern_weight: 0,
+  graph_weight: 0,
+});
 
 export const ProposalSchema = z.object({
   failure_hypothesis: z.string().min(10).max(1500),

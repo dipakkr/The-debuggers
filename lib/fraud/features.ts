@@ -11,6 +11,9 @@ interface MerchantHit {
   ts: number;
   cid: string;
   young: boolean;
+  firstTouch: boolean;
+  amt: number;
+  ageDays: number;
 }
 
 const HOUR = 3_600_000;
@@ -130,6 +133,39 @@ export function featurize(
       fan_out_24h = new Set(hits.filter((h) => h.cid !== tx.customer_id && h.young).map((h) => h.cid)).size;
     }
 
+    // newcomer burst: distinct OTHER customers whose FIRST-EVER payment at
+    // this merchant happened within the trailing 48h. Convergence of many
+    // first-time payer identities is the mule-network tell. Two discriminators
+    // separate coordination from random walk-ins: ticket-size homogeneity and
+    // identity-batch coherence (minted-together accounts share creation dates).
+    const isNewPairHere = !cs.merchants.has(tx.merchant_id);
+    let newcomer_count_48h = 0;
+    let newcomer_burst_score = 0;
+    if (hits && hits.length) {
+      const nc = hits.filter((h) => h.firstTouch && h.cid !== tx.customer_id && now - h.ts <= 48 * HOUR);
+      const uniq = new Map<string, { amt: number; ageDays: number }>();
+      for (const h of nc.slice(-12)) if (!uniq.has(h.cid)) uniq.set(h.cid, { amt: h.amt, ageDays: h.ageDays });
+      // the current tx itself joins its cohort when it is a first-touch:
+      // participation in the cluster is part of the evidence
+      const cohortSize = isNewPairHere ? uniq.size + 1 : uniq.size;
+      newcomer_count_48h = uniq.size;
+      if (cohortSize >= 1) {
+        const amts = [...[...uniq.values()].map((v) => v.amt), tx.amount];
+        const mAmt = mean(amts);
+        const amtCv = mAmt > 0 ? std(amts) / mAmt : 2;
+        // identity-batch coherence via median/MAD: one unrelated old walk-in
+        // must not destroy the signal that the core cohort was minted together
+        const ages = [...[...uniq.values()].map((v) => v.ageDays), tx.account_age_days];
+        const medAge = median(ages);
+        const madAge = median(ages.map((a) => Math.abs(a - medAge)));
+        const ageCoherence = clamp(1 - madAge / Math.max(1, medAge), 0, 1);
+        const convergence = Math.min(1, cohortSize / 3);
+        // soft homogeneity: a single unrelated ticket size must not zero it
+        const homogeneity = 0.5 + 0.5 * clamp(1 - amtCv / 0.35, 0, 1);
+        newcomer_burst_score = convergence * ageCoherence * homogeneity;
+      }
+    }
+
     out.push({
       tx,
       f: {
@@ -144,6 +180,8 @@ export function featurize(
         escalation_score,
         pattern_score,
         fan_out_24h,
+        newcomer_count_48h,
+        newcomer_burst_score,
       },
     });
 
@@ -151,10 +189,11 @@ export function featurize(
     cs.amounts.push(tx.amount);
     cs.ts.push(now);
     cs.devices.add(tx.device_id);
+    const wasNewMerchant = new_merchant === 1;
     cs.merchants.add(tx.merchant_id);
     let mh = merchantHits.get(tx.merchant_id);
     if (!mh) merchantHits.set(tx.merchant_id, (mh = []));
-    mh.push({ ts: now, cid: tx.customer_id, young: young_account === 1 });
+    mh.push({ ts: now, cid: tx.customer_id, young: young_account === 1, firstTouch: wasNewMerchant, amt: tx.amount, ageDays: tx.account_age_days });
   }
   return out;
 }
