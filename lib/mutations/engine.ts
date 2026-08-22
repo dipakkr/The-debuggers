@@ -76,6 +76,7 @@ export function summarizeExperimentMemory(state: ArenaState) {
 
 /** Seed a fresh session: baseline scoreboard + loud root genomes as gen-0 beam. */
 export function resetArena(state = arena()): void {
+  idCounter = 1000;
   state.generation = 0;
   state.scenarios.clear();
   state.childrenOf.clear();
