@@ -1,4 +1,4 @@
-import { Genome, DefenseConfig, VERSIONS } from "@/lib/contracts/genome";
+import { Genome, DefenseConfig, MetricsResult, VERSIONS } from "@/lib/contracts/genome";
 import { buildWorld, generateLegitStream, World } from "@/lib/simulator/world";
 import { compileScenario } from "@/lib/simulator/scenario";
 import { featurize } from "@/lib/fraud/features";

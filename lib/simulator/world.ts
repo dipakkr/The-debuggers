@@ -1,5 +1,7 @@
 import { mulberry32, hashSeed, uniform, int, pick, lognormal, poisson } from "../rng";
-import { MCCS, MCC, Transaction, GroundTruth } from "@/lib/contracts/genome";
+import { MCCS, Transaction } from "@/lib/contracts/genome";
+
+type MCC = (typeof MCCS)[number];
 
 export interface Merchant {
   id: string;

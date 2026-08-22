@@ -88,6 +88,8 @@ export interface TxFeatures {
   /** distinct OTHER customers whose FIRST-EVER payment at this merchant
    *  occurred within the trailing 48h — a bipartite graph burst signal. */
   newcomer_count_48h: number;
+  /** convergence × identity-batch coherence × ticket homogeneity ∈ [0,1] */
+  newcomer_burst_score: number;
 }
 
 export type TxKind = "backdrop" | "warmup" | "attack";

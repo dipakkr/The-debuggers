@@ -33,7 +33,7 @@ export function compileScenario(
   const nextId = (kind: "A" | "W") => `${scenario_id}-${kind}${String(++seq).padStart(3, "0")}`;
 
   const target =
-    merchantById(world, pick(rng, world.merchants.filter((m) => m.mcc === genome.merchant.mcc))) ??
+    merchantById(world, pick(rng, world.merchants.filter((m) => m.mcc === genome.merchant.mcc)).id) ??
     world.merchants[0];
 
   const [winStart, winEnd] = (() => {

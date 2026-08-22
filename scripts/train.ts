@@ -73,7 +73,7 @@ function main() {
   );
   const X = feats.map((r) => V1_FEATURES.map((k) => r.f[k] as number));
   const y = feats.map((r) => (r.tx.ground_truth === "fraud" ? 1 : 0));
-  console.log(`[train] rows=${X.length} fraud=${y.reduce((a, b) => a + b, 0)}`);
+  console.log(`[train] rows=${X.length} fraud=${(y as number[]).reduce((a, b) => a + b, 0)}`);
 
   // fit on first 80%, calibrate thresholds on last 20%
   const cut = Math.floor(X.length * 0.8);

@@ -1,4 +1,4 @@
-import { Scenario } from "./contracts/genome";
+import { Scenario, MetricsResult } from "./contracts/genome";
 import { ScenarioOutcome } from "./referee/referee";
 import type { EvalRun } from "./referee/referee";
 
@@ -23,11 +23,13 @@ export interface ArenaState {
   beam: string[];
   blindSpotScenarioId: string | null;
   baselineRun: EvalRun | null; // v1 on the FINAL pool
+  lastSearchMetrics: MetricsResult | null; // detector under active attack (search pool)
   defenseProposal: unknown | null;
   defenseConfig: unknown | null;
   defenseAccepted: boolean | null;
   gateRun: EvalRun | null;
   replayDiff: unknown | null;
+  gateReasons: string[];
   log: { ts: string; level: "info" | "warn" | "hero"; msg: string }[];
 }
 
@@ -40,11 +42,13 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
     beam: [],
     blindSpotScenarioId: null,
     baselineRun: null,
+    lastSearchMetrics: null,
     defenseProposal: null,
     defenseConfig: null,
     defenseAccepted: null,
     gateRun: null,
     replayDiff: null,
+    gateReasons: [],
     log: [],
   };
 }

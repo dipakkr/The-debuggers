@@ -59,7 +59,15 @@ export function resetArena(state = arena()): void {
   state.replayDiff = null;
 
   const model = loadModel();
-  state.baselineRun = refereeEvaluate(model, null, [], { legitSeed: SEEDS.final_test });
+  // Baseline scoreboard: v1 against the LOUD canonical templates on the
+  // held-out pool — this is the "known attacks are detected" evidence.
+  const familiesBase: Genome["family"][] = ["card_testing_drain", "low_and_slow", "mule_fanout"];
+  const baseSpecs = familiesBase.map((f, i) => ({
+    genome: rootGenome(f),
+    seed: SEEDS.final_test + (i + 1) * 7717,
+    scenario_id: `AF-BASE${i}`,
+  }));
+  state.baselineRun = refereeEvaluate(model, null, baseSpecs, { legitSeed: SEEDS.final_test });
 
   // generation 0: one loud root per family — the "known attacks" the baseline catches
   const families: Genome["family"][] = ["card_testing_drain", "low_and_slow", "mule_fanout"];
@@ -150,7 +158,6 @@ function registerBatch(
     rec.verdict = outcome.attack_success_rate >= 0.34 ? "evaded" : "caught";
     // the detector's actual reason codes — these drive the next mutation
     rec.reasons = outcome.top_reasons;
-
     views.push({
       scenario_id: v.scenario_id,
       parent_scenario_id: v.parent,
@@ -164,6 +171,8 @@ function registerBatch(
       novel: isNovel(v.genome as Genome),
     });
   });
+
+  state.lastSearchMetrics = run.metrics;
 
   appendExperiment({
     experiment_id: `EXP-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,

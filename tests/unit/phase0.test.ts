@@ -40,8 +40,10 @@ describe("phase 0: baseline defense + deterministic referee", () => {
   });
 
   it("T25 identical seeds produce byte-identical evaluations", () => {
-    const a = JSON.stringify(refereeEvaluate(model, null, [spec(TEMPLATE_GENOMES[0], 3)]));
-    const b = JSON.stringify(refereeEvaluate(model, null, [spec(TEMPLATE_GENOMES[0], 3)]));
+    // wall-clock latency is MEASURED, not computed — excluded from determinism
+    const norm = (s: string) => s.replace(/"(p50_latency_ms|p95_latency_ms|latency_ms)":\s*[\d.]+/g, '"$1":X');
+    const a = norm(JSON.stringify(refereeEvaluate(model, null, [spec(TEMPLATE_GENOMES[0], 3)])));
+    const b = norm(JSON.stringify(refereeEvaluate(model, null, [spec(TEMPLATE_GENOMES[0], 3)])));
     expect(a).toEqual(b);
   });
 

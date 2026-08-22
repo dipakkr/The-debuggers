@@ -129,8 +129,10 @@ describe("phase 2: blue investigation + gated defense", () => {
       seed: SEEDS.final_test + i * 7919,
       scenario_id: `AF-STAB0${i}`,
     }));
-    const a = JSON.stringify(refereeEvaluate(model, null, specs));
-    const b = JSON.stringify(refereeEvaluate(model, null, specs));
+    // wall-clock latency is MEASURED, not computed — excluded from determinism
+    const norm = (s: string) => s.replace(/"(p50_latency_ms|p95_latency_ms|latency_ms)":\s*[\d.]+/g, '"$1":X');
+    const a = norm(JSON.stringify(refereeEvaluate(model, null, specs)));
+    const b = norm(JSON.stringify(refereeEvaluate(model, null, specs)));
     expect(a).toEqual(b);
   });
 });

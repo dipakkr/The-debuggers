@@ -70,14 +70,15 @@ export function runDefenseGate(
     )
     .slice(0, 2);
 
-  const freshSpecs: ScenarioSpec[] = [0, 1, 2].map((k) => ({
+  const freshSpecs: ScenarioSpec[] = [0, 1, 2, 3, 4].map((k) => ({
     genome: blind.scenario.genome,
-    seed: SEEDS.final_test + (k + 11) * 131_071 + state.generation * 7,
+    // constant referee seeds — a gate verdict must not depend on when it runs
+    seed: SEEDS.final_test + (k + 11) * 131_071,
     scenario_id: `${blind.scenario.scenario_id}-H${k}`,
   }));
   const siblingSpecs: ScenarioSpec[] = siblings.map((s, i) => ({
     genome: s.scenario.genome,
-    seed: SEEDS.final_test + (i + 1) * 104729 + state.generation * 7,
+    seed: SEEDS.final_test + (i + 1) * 104729,
     scenario_id: s.scenario.scenario_id,
   }));
   const specs = [...freshSpecs, ...siblingSpecs];
@@ -106,12 +107,20 @@ export function runDefenseGate(
     Math.max(1, improvable.length)
   );
 
-  // exact replay of the ORIGINAL discovery scenario under v1 vs candidate
-  const replay = replayPair(model, null, candidate, {
-    genome: blind.scenario.genome,
-    seed: blind.scenario.seed,
-    scenario_id: blind.scenario.scenario_id,
-  });
+  // Exact replay: the ORIGINAL discovery scenario plus fresh-seed recompiles
+  // of the same genome, rescored under v1 vs candidate — the causal
+  // BEFORE/AFTER evidence chain.
+  const replaySpecs: ScenarioSpec[] = [
+    { genome: blind.scenario.genome, seed: blind.scenario.seed, scenario_id: blind.scenario.scenario_id },
+    ...freshSpecs,
+  ];
+  const diffs: { tx_id: string; amount: number; before: string; after: string }[] = [];
+  for (const spec of replaySpecs) {
+    const rp = replayPair(model, null, candidate, spec);
+    diffs.push(...rp.diff);
+  }
+  const replayBeforeMetrics = baseRun.metrics;
+  const replayAfterMetrics = candRun.metrics;
 
   appendExperiment({
     experiment_id: `EXP-${Date.now()}-gate`,
@@ -125,7 +134,8 @@ export function runDefenseGate(
       cand_recall: candRun.metrics.fraud_recall,
       base_fpr: baseRun.metrics.fpr,
       cand_fpr: candRun.metrics.fpr,
-      survived_of: `${survived}/${Math.max(1, improvable.length)}`,
+      survived: survived,
+      improvable: improvable.length,
     },
     decision: verdict.accepted ? "ACCEPT" : "REJECT",
     notes: verdict.reasons.join("; ") || "all gates passed",
@@ -138,9 +148,9 @@ export function runDefenseGate(
     seed: blind.scenario.seed,
     versions: { dataset_version: "synth-pop-1.2.0", attack_version: "genome-1.1.0", detector_version: "risk-engine-1.0.0", defense_version: "risk-engine-2.0.0" },
     metrics: {
-      before_success: replay.before.per_scenario[0]?.attack_success_rate ?? 0,
-      after_success: replay.after.per_scenario[0]?.attack_success_rate ?? 0,
-      changed_rows: replay.diff.length,
+      before_recall: replayBeforeMetrics.fraud_recall,
+      after_recall: replayAfterMetrics.fraud_recall,
+      changed_rows: diffs.length,
     },
     decision: "REPLAYED",
   });
@@ -150,8 +160,9 @@ export function runDefenseGate(
     state.defenseProposal = proposal;
   }
   state.defenseAccepted = verdict.accepted;
+  state.gateReasons = verdict.reasons;
   state.gateRun = candRun;
-  state.replayDiff = replay.diff;
+  state.replayDiff = diffs;
 
   return {
     accepted: verdict.accepted,
@@ -160,9 +171,9 @@ export function runDefenseGate(
     finalBase: baseRun,
     finalCand: candRun,
     survival,
-    replayBefore: replay.before,
-    replayAfter: replay.after,
-    replayDiff: replay.diff,
+    replayBefore: null,
+    replayAfter: null,
+    replayDiff: diffs,
   };
 }
 
