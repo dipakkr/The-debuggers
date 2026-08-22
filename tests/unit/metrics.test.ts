@@ -10,7 +10,7 @@ const row = (
   ({
     tx: { ground_truth: truth },
     out: { decision, risk_score: risk, latency_ms: 1, reason_codes: [] },
-  }) as ScoredTx;
+  }) as unknown as ScoredTx;
 
 describe("metric contract", () => {
   it("reports F1, FNR, and average precision with explicit names", () => {

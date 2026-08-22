@@ -8,7 +8,7 @@ import { computeFitness } from "@/lib/referee/fitness";
 import { isNovel } from "@/lib/attacks/templates";
 import { demoMutation, rootGenome } from "./demo-policy";
 import { appendExperiment } from "@/lib/referee/ledger";
-import { chatJson, parseJsonLoose, liveModeAvailable } from "@/lib/genai/client";
+import { chatStructured, liveModeAvailable } from "@/lib/genai/client";
 
 let idCounter = 1000;
 function nextScenarioId(): string {
@@ -211,11 +211,12 @@ recent_outcomes: ${JSON.stringify(outcomes)}
 task: propose ${k} mutations of the parent genome that reduce detector detection while staying behaviourally realistic for this family.
 rules: keep every field within the same bounds as the parent schema; small coherent moves beat wild jumps.
 </data>`;
-  const res = await chatJson(RED_SYSTEM, user);
-  if (!res.ok || !res.text) return [];
-  const arr = parseJsonLoose<Genome[]>(res.text);
-  if (!Array.isArray(arr)) return [];
-  return arr.slice(0, k).filter((g) => g && typeof g === "object");
+  const res = await chatStructured(
+    RED_SYSTEM,
+    user,
+    GenomeSchema.array().min(1).max(k)
+  );
+  return res.ok ? res.data : [];
 }
 
 /**

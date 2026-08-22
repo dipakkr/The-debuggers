@@ -5,7 +5,7 @@
  */
 
 const INJECTION_PATTERNS: [RegExp, string][] = [
-  [/ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)/gi, "[FILTERED:instruction-override]"],
+  [/ignore\s+(all\s+)?(previous|prior|above|system)\s+(instructions?|prompts?)/gi, "[FILTERED:instruction-override]"],
   [/disregard\s+(all\s+)?(previous|prior|your)\s+(instructions?|rules?|prompts?)/gi, "[FILTERED:instruction-override]"],
   [/you\s+are\s+now\s+(a|an|the)\s+/gi, "[FILTERED:role-hijack]"],
   [/system\s*prompt/gi, "[FILTERED:system-ref]"],
