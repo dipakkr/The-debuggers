@@ -15,14 +15,12 @@ Replace this matrix if Mastercard or Kaggle publishes an official rubric.
 | R7 Scientific Validity | Separate development stages and reproduce claims | Four fixed environments and exact version stamps | Seeds, versions, commit, and experiment IDs | Fresh-seed survival and replay equality | Determinism and evidence tests | The audit view shows the exact experiment identity | Experimental Methodology | Implemented for the synthetic prototype |
 | R8 Security | Keep offensive behavior synthetic and bounded | Credential guards, schema limits, input scrubber | Security tests and threat model | Rejected unsafe inputs | Injection, timeout, URL, schema, and credential tests | The synthetic-environment banner stays visible | Security and Responsible AI | Implemented and tested |
 | R9 Scalability | Report measured prototype performance | Three-scale benchmark | `benchmark.json` | Throughput, P95 latency, RSS, and duration | Load smoke test | Show the benchmark evidence, not an extrapolated claim | Scalability | Measured to 101,673 rows; no network-scale claim |
-| R10 Product and Demo | Explain the innovation in 15 seconds and finish in three minutes | Command center, stage rail, blind-spot alert, replay | Production build and UI contract | Demo duration and visible metrics | UI and accessibility tests | BLIND SPOT DISCOVERED and before-versus-after replay | Product Experience | Implemented; public deployment remains pending |
+| R10 Product and Demo | Explain the innovation in 15 seconds and finish in three minutes | Command center, stage rail, blind-spot alert, replay | Public production build and browser-verified flow | Demo duration and visible metrics | UI and accessibility tests | BLIND SPOT DISCOVERED and before-versus-after replay | Product Experience | Implemented and publicly deployed |
 
 ## Current gaps
 
 The prototype still needs these submission operations:
 
-- Publish the public web deployment.
-- Record the final public URL in the README and Word document.
 - Capture the final CI result from the public branch.
 - Rehearse the complete three-minute sequence on the deployed build.
 

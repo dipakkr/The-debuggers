@@ -109,7 +109,8 @@ const WHITE = "FFFFFF";
 const BORDER = "C9D1D9";
 const repoUrl =
   "https://github.com/namangoyal3/mastercard-innovation-challenge";
-const webUrl = "Public Railway URL: added after the final deployment";
+const webUrl =
+  "https://adversarial-fraud-arena-production.up.railway.app";
 
 const pct = (value: number): string => `${(value * 100).toFixed(2)}%`;
 const rate = (value: number): string => value.toLocaleString("en-US");
@@ -231,15 +232,9 @@ function table(rows: string[][], widths: number[]): Table {
 }
 
 const pageBreak = () => new Paragraph({ children: [new PageBreak()] });
-const gap = () => new Paragraph({ spacing: { before: 40, after: 80 } });
 
 const children: Array<Paragraph | Table> = [];
-const push = (...items: Array<Paragraph | Table>) => {
-  for (const item of items) {
-    children.push(item);
-    if (item instanceof Table) children.push(gap());
-  }
-};
+const push = (...items: Array<Paragraph | Table>) => children.push(...items);
 
 push(
   new Paragraph({
@@ -407,16 +402,17 @@ push(
       ["R7 Science", "Four environments, versions, seeds, and evidence", "Implemented"],
       ["R8 Security", "Synthetic scope, input guards, and injection tests", "Implemented and tested"],
       ["R9 Scale", "Five-trial benchmark at three sizes", "Measured to 101,673 rows"],
-      ["R10 Product", "Command center and deterministic demo", "Deployment pending"],
+      ["R10 Product", "Command center and deterministic demo", "Public build verified"],
     ],
     [1_700, 4_900, 2_520]
   ),
   p(
-    "This matrix is an internal planning model. No public official weighted rubric was verified on 22 August 2026."
+    "This matrix is internal. No official weighted rubric was public on 22 August 2026."
   )
 );
 
 push(
+  pageBreak(),
   h1("6. IDENTIFY"),
   h2("Threat Research"),
   p(
@@ -482,6 +478,7 @@ push(
   numbered("Score every transaction with the active detector.", 1),
   numbered("Store fitness, novelty, verdict, and lineage.", 1),
   numbered("Select the next parents from measured outcomes.", 1),
+  pageBreak(),
   h2("Search algorithm"),
   p(
     "The MVP uses bounded evolutionary beam search. It needs no new optimizer, trains no search model, and supports visible lineage."

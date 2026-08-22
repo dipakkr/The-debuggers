@@ -20,6 +20,8 @@ The Referee owns all labels, metrics, seeds, gates, and replay results. Neither 
 
 Repository: [namangoyal3/mastercard-innovation-challenge](https://github.com/namangoyal3/mastercard-innovation-challenge)
 
+Public prototype: [adversarial-fraud-arena-production.up.railway.app](https://adversarial-fraud-arena-production.up.railway.app)
+
 ## The product
 
 The Arena runs one complete payment-defense loop:
