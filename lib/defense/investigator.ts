@@ -1,5 +1,5 @@
-import { Proposal, ProposalSchema, DefenseConfigSchema, DefenseConfig } from "@/lib/contracts/genome";
-import { chatJson, parseJsonLoose } from "@/lib/genai/client";
+import { Proposal, ProposalSchema, DefenseConfig } from "@/lib/contracts/genome";
+import { chatStructured } from "@/lib/genai/client";
 
 /**
  * Blue investigator inputs come exclusively from Referee outputs:
@@ -101,18 +101,13 @@ export interface InvestigationResult {
 export async function investigate(input: InvestigationInput, mode: "demo" | "live"): Promise<InvestigationResult> {
   let llmProposal: Proposal | null = null;
   if (mode === "live") {
-    const res = await chatJson(
+    const res = await chatStructured(
       BLUE_SYSTEM,
       `<data>${JSON.stringify(input)}</data>\nPropose the most defensible bounded defense change.`,
+      ProposalSchema,
       20_000
     );
-    if (res.ok && res.text) {
-      const parsed = parseJsonLoose<unknown>(res.text);
-      if (parsed) {
-        const check = ProposalSchema.safeParse(parsed);
-        if (check.success) llmProposal = check.data;
-      }
-    }
+    if (res.ok) llmProposal = res.data;
   }
   if (llmProposal) return { proposal: llmProposal, source: "llm" };
   return { proposal: demoProposal(input), source: "policy" };

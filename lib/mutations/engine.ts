@@ -1,14 +1,22 @@
-import { Genome, GenomeSchema, ScenarioSchema } from "@/lib/contracts/genome";
+import {
+  Genome,
+  GenomeSchema,
+  ScenarioSchema,
+  versionStamp,
+} from "@/lib/contracts/genome";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { DetectorWeights } from "@/lib/fraud/detector";
+import {
+  DetectorWeightsSchema,
+  type DetectorWeights,
+} from "@/lib/fraud/detector";
 import { arena, ArenaState, StoredScenario } from "@/lib/state";
 import { refereeEvaluate, SEEDS, ScenarioOutcome } from "@/lib/referee/referee";
 import { computeFitness } from "@/lib/referee/fitness";
 import { isNovel } from "@/lib/attacks/templates";
 import { demoMutation, rootGenome } from "./demo-policy";
-import { appendExperiment } from "@/lib/referee/ledger";
-import { chatJson, parseJsonLoose, liveModeAvailable } from "@/lib/genai/client";
+import { appendExperiment, makeExperimentId } from "@/lib/referee/ledger";
+import { chatStructured, liveModeAvailable } from "@/lib/genai/client";
 
 let idCounter = 1000;
 function nextScenarioId(): string {
@@ -18,9 +26,11 @@ function nextScenarioId(): string {
 let modelCache: DetectorWeights | null = null;
 export function loadModel(): DetectorWeights {
   if (!modelCache) {
-    modelCache = JSON.parse(
-      readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
-    ) as DetectorWeights;
+    modelCache = DetectorWeightsSchema.parse(
+      JSON.parse(
+        readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
+      )
+    );
   }
   return modelCache;
 }
@@ -45,8 +55,28 @@ export interface GenerationResult {
   source: "llm" | "policy";
 }
 
+export function summarizeExperimentMemory(state: ArenaState) {
+  return [...state.scenarios.values()]
+    .sort(
+      (a, b) =>
+        b.scenario.generation - a.scenario.generation ||
+        b.scenario.scenario_id.localeCompare(a.scenario.scenario_id)
+    )
+    .slice(0, 12)
+    .map((record) => ({
+      scenario_id: record.scenario.scenario_id,
+      parent_scenario_id: record.scenario.parent_scenario_id,
+      generation: record.scenario.generation,
+      verdict: record.verdict,
+      attack_success_rate: record.outcome?.attack_success_rate ?? 0,
+      fitness: record.fitness ?? null,
+      reason_codes: record.reasons,
+    }));
+}
+
 /** Seed a fresh session: baseline scoreboard + loud root genomes as gen-0 beam. */
 export function resetArena(state = arena()): void {
+  idCounter = 1000;
   state.generation = 0;
   state.scenarios.clear();
   state.childrenOf.clear();
@@ -55,6 +85,7 @@ export function resetArena(state = arena()): void {
   state.defenseProposal = null;
   state.defenseConfig = null;
   state.defenseAccepted = null;
+  state.gateBaselineRun = null;
   state.gateRun = null;
   state.replayDiff = null;
 
@@ -175,15 +206,15 @@ function registerBatch(
   state.lastSearchMetrics = run.metrics;
 
   appendExperiment({
-    experiment_id: `EXP-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    experiment_id: makeExperimentId({
+      kind: "generation",
+      generation: state.generation,
+      scenario_ids: batch.map((item) => item.scenario_id).join(","),
+      seeds: batch.map((item) => item.seed).join(","),
+    }),
     ts: new Date().toISOString(),
     kind: "generation",
-    versions: {
-      dataset_version: "synth-pop-1.2.0",
-      attack_version: "genome-1.1.0",
-      detector_version: "risk-engine-1.0.0",
-      defense_version: defense ? "risk-engine-2.0.0" : "none",
-    },
+    versions: versionStamp(state.mode, defense ? "risk-engine-2.0.0" : "none"),
     metrics: {
       mean_fitness: views.reduce((s, v) => s + (v.fitness ?? 0), 0) / Math.max(1, views.length),
       max_attack_success: Math.max(0, ...views.map((v) => v.attack_success_rate ?? 0)),
@@ -201,21 +232,22 @@ Reply with ONLY a JSON array of genome objects. Each genome must match the provi
 
 async function llmMutations(
   parent: Genome,
-  outcomes: { verdict: string; successRate: number; riskMedian: number }[],
+  experimentMemory: ReturnType<typeof summarizeExperimentMemory>,
   k: number
 ): Promise<Genome[]> {
   const user = `<data>
 attack_family: ${parent.family}
 parent_genome: ${JSON.stringify(parent)}
-recent_outcomes: ${JSON.stringify(outcomes)}
+experiment_memory: ${JSON.stringify(experimentMemory)}
 task: propose ${k} mutations of the parent genome that reduce detector detection while staying behaviourally realistic for this family.
 rules: keep every field within the same bounds as the parent schema; small coherent moves beat wild jumps.
 </data>`;
-  const res = await chatJson(RED_SYSTEM, user);
-  if (!res.ok || !res.text) return [];
-  const arr = parseJsonLoose<Genome[]>(res.text);
-  if (!Array.isArray(arr)) return [];
-  return arr.slice(0, k).filter((g) => g && typeof g === "object");
+  const res = await chatStructured(
+    RED_SYSTEM,
+    user,
+    GenomeSchema.array().min(1).max(k)
+  );
+  return res.ok ? res.data : [];
 }
 
 /**
@@ -235,6 +267,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
       : [...state.scenarios.values()].filter((s) => s.scenario.generation === 0).map((s) => s.scenario.scenario_id);
 
   let usedLlm = false;
+  const experimentMemory = summarizeExperimentMemory(state);
   const batch: { genome: Genome; scenario_id: string; seed: number; parent: string | null; generation: number }[] = [];
   for (const pid of parentIds) {
     const parentRec = state.scenarios.get(pid);
@@ -244,13 +277,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
 
     let mutants: Genome[] = [];
     if (state.mode === "live" && liveModeAvailable()) {
-      mutants = await llmMutations(parent, [
-        {
-          verdict: parentRec.verdict,
-          successRate: parentRec.outcome?.attack_success_rate ?? 0,
-          riskMedian: parentRec.riskStats?.median ?? 0,
-        },
-      ], 2);
+      mutants = await llmMutations(parent, experimentMemory, 2);
       if (mutants.length > 0) usedLlm = true;
     }
     if (mutants.length === 0) {
@@ -326,17 +353,17 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
     state.blindSpotScenarioId = confirmedId;
     const rec = state.scenarios.get(confirmedId)!;
     appendExperiment({
-      experiment_id: `EXP-${Date.now()}-bs`,
+      experiment_id: makeExperimentId({
+        kind: "blind_spot",
+        scenario_id: confirmedId,
+        seed: rec.scenario.seed,
+        generation,
+      }),
       ts: new Date().toISOString(),
       kind: "blind_spot",
       scenario_id: confirmedId,
       seed: rec.scenario.seed,
-      versions: {
-        dataset_version: "synth-pop-1.2.0",
-        attack_version: "genome-1.1.0",
-        detector_version: "risk-engine-1.0.0",
-        defense_version: "none",
-      },
+      versions: versionStamp(state.mode, "none"),
       metrics: { attack_success_rate_search_seed: rec.outcome?.attack_success_rate ?? 0 },
       decision: "BLIND_SPOT_CONFIRMED",
       notes: `evasion reproduced across 4 fresh seeds after ${generation} generations`,

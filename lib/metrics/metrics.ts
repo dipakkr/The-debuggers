@@ -33,12 +33,17 @@ export function computeMetrics(scored: ScoredTx[]): MetricsResult {
     }
   }
 
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const fraud_recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+
   return {
-    fraud_recall: tp + fn > 0 ? tp / (tp + fn) : 0,
-    precision: tp + fp > 0 ? tp / (tp + fp) : 0,
+    fraud_recall,
+    precision,
+    f1: precision + fraud_recall > 0 ? (2 * precision * fraud_recall) / (precision + fraud_recall) : 0,
     fpr: fp + tn > 0 ? fp / (fp + tn) : 0,
+    fnr: tp + fn > 0 ? fn / (tp + fn) : 0,
     review_rate: fp + tn > 0 ? reviews / (fp + tn) : 0,
-    pr_auc: positives > 0 ? apSum / positives : 0,
+    average_precision: positives > 0 ? apSum / positives : 0,
     p50_latency_ms: Math.round(q(0.5) * 1000) / 1000,
     p95_latency_ms: Math.round(q(0.95) * 1000) / 1000,
     n_legit: fp + tn,

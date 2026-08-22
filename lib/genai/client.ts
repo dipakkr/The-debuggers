@@ -2,6 +2,8 @@
  * Minimal OpenAI-compatible chat client with hard timeout, one retry and a
  * structured result. LIVE mode only; DEMO mode never calls this.
  */
+import type { ZodType } from "zod";
+
 export interface LlmResult {
   ok: boolean;
   text?: string;
@@ -9,11 +11,28 @@ export interface LlmResult {
   source: "llm" | "fallback";
 }
 
+export type Completion = (
+  system: string,
+  user: string,
+  timeoutMs?: number
+) => Promise<LlmResult>;
+
 function cfg() {
-  const base = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const base = assertSafeProviderUrl(
+    process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1"
+  ).href.replace(/\/$/, "");
   const key = process.env.OPENAI_API_KEY;
   const model = process.env.ARENA_MODEL ?? "gpt-4o-mini";
   return { base, key, model };
+}
+
+export function assertSafeProviderUrl(value: string): URL {
+  const url = new URL(value);
+  const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost";
+  if (url.protocol !== "https:" && !(loopback && url.protocol === "http:")) {
+    throw new Error("provider URL must use HTTPS");
+  }
+  return url;
 }
 
 export function liveModeAvailable(): boolean {
@@ -93,4 +112,37 @@ export function parseJsonLoose<T>(text: string): T | null {
     }
     return null;
   }
+}
+
+/** Validate one model response, allow one schema-guided repair, then fail closed. */
+export async function chatStructured<T>(
+  system: string,
+  user: string,
+  schema: ZodType<T>,
+  timeoutMs = 15_000,
+  complete: Completion = chatJson
+): Promise<
+  | { ok: true; data: T; source: "llm" | "repair" }
+  | { ok: false; error: string; source: "fallback" }
+> {
+  const parse = (result: LlmResult): T | null => {
+    if (!result.ok || !result.text) return null;
+    const checked = schema.safeParse(parseJsonLoose<unknown>(result.text));
+    return checked.success ? checked.data : null;
+  };
+
+  const first = await complete(system, user, timeoutMs);
+  const firstData = parse(first);
+  if (firstData) return { ok: true, data: firstData, source: "llm" };
+  if (!first.ok) return { ok: false, error: first.error ?? "provider failure", source: "fallback" };
+
+  const repaired = await complete(
+    `${system}\nRepair the prior output. Return only JSON that matches the required schema.`,
+    `<invalid_output>${first.text ?? ""}</invalid_output>\n${user}`,
+    Math.min(timeoutMs, 10_000)
+  );
+  const repairedData = parse(repaired);
+  return repairedData
+    ? { ok: true, data: repairedData, source: "repair" }
+    : { ok: false, error: repaired.error ?? "malformed structured output", source: "fallback" };
 }

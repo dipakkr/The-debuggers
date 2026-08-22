@@ -4,12 +4,22 @@ import path from "node:path";
 import { GenomeSchema, ProposalSchema, VERSIONS } from "@/lib/contracts/genome";
 import { TEMPLATE_GENOMES } from "@/lib/attacks/templates";
 import { guardUntrustedText, scrubUntrusted, CredentialGuardError } from "@/lib/guards/injection";
-import { chatJson, parseJsonLoose, liveModeAvailable } from "@/lib/genai/client";
+import {
+  assertSafeProviderUrl,
+  chatJson,
+  parseJsonLoose,
+  liveModeAvailable,
+} from "@/lib/genai/client";
 import { freshState } from "@/lib/state";
 import { loadModel, resetArena, runGeneration } from "@/lib/mutations/engine";
 import { featurize } from "@/lib/fraud/features";
-import { scoreFeaturized, DetectorWeights } from "@/lib/fraud/detector";
+import {
+  scoreFeaturized,
+  DetectorWeightsSchema,
+  type DetectorWeights,
+} from "@/lib/fraud/detector";
 import { generateLegitStream, buildWorld } from "@/lib/simulator/world";
+import { POST as resetSession } from "@/app/api/session/reset/route";
 
 const model = JSON.parse(
   readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
@@ -17,8 +27,10 @@ const model = JSON.parse(
 
 const ENV_BACKUP = { key: process.env.OPENAI_API_KEY, base: process.env.OPENAI_BASE_URL };
 afterEach(() => {
-  process.env.OPENAI_API_KEY = ENV_BACKUP.key;
-  process.env.OPENAI_BASE_URL = ENV_BACKUP.base;
+  if (ENV_BACKUP.key === undefined) delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY = ENV_BACKUP.key;
+  if (ENV_BACKUP.base === undefined) delete process.env.OPENAI_BASE_URL;
+  else process.env.OPENAI_BASE_URL = ENV_BACKUP.base;
 });
 
 describe("phase 4: security guards", () => {
@@ -103,6 +115,31 @@ describe("phase 4: security guards", () => {
     expect(() => guardUntrustedText("perfectly normal threat note about mule rings")).not.toThrow();
   });
 
+  it("rejects oversized untrusted text", () => {
+    expect(() => guardUntrustedText("x".repeat(2001))).toThrow(/too large/i);
+  });
+
+  it("rejects unsafe provider URLs", () => {
+    expect(() => assertSafeProviderUrl("http://example.com/v1")).toThrow(/https/i);
+    expect(() => assertSafeProviderUrl("https://api.openai.com/v1")).not.toThrow();
+    expect(() => assertSafeProviderUrl("http://127.0.0.1:1")).not.toThrow();
+  });
+
+  it("rejects malformed detector artifacts", () => {
+    expect(DetectorWeightsSchema.safeParse({ version: "bad" }).success).toBe(false);
+  });
+
+  it("rejects oversized session requests before parsing", async () => {
+    const response = await resetSession(
+      new Request("http://localhost/api/session/reset", {
+        method: "POST",
+        headers: { "content-length": "20000" },
+        body: "{}",
+      })
+    );
+    expect(response.status).toBe(413);
+  });
+
   it("live mode requires configuration; demo never calls providers", () => {
     delete process.env.OPENAI_API_KEY;
     expect(liveModeAvailable()).toBe(false);
@@ -114,6 +151,7 @@ describe("phase 4: security guards", () => {
       "dataset_version",
       "defense_version",
       "detector_version",
+      "reasoning_version",
     ]);
   });
 });

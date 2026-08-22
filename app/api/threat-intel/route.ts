@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { THREAT_FAMILIES, DEMO_ASSESSMENT } from "@/lib/threat-intel/families";
+import { THREAT_FAMILIES, assessThreats } from "@/lib/threat-intel/families";
 import { guardUntrustedText } from "@/lib/guards/injection";
+import { arena } from "@/lib/state";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: String(e) }, { status: 422 });
     }
   }
+  const { assessment, source } = await assessThreats(arena().mode, guardedNote);
   return NextResponse.json({
     families: THREAT_FAMILIES,
-    assessment: DEMO_ASSESSMENT,
+    assessment,
     note: guardedNote,
-    source: "curated",
+    source,
   });
 }

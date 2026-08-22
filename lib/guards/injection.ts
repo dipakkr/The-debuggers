@@ -5,7 +5,7 @@
  */
 
 const INJECTION_PATTERNS: [RegExp, string][] = [
-  [/ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)/gi, "[FILTERED:instruction-override]"],
+  [/ignore\s+(all\s+)?(previous|prior|above|system)\s+(instructions?|prompts?)/gi, "[FILTERED:instruction-override]"],
   [/disregard\s+(all\s+)?(previous|prior|your)\s+(instructions?|rules?|prompts?)/gi, "[FILTERED:instruction-override]"],
   [/you\s+are\s+now\s+(a|an|the)\s+/gi, "[FILTERED:role-hijack]"],
   [/system\s*prompt/gi, "[FILTERED:system-ref]"],
@@ -13,6 +13,8 @@ const INJECTION_PATTERNS: [RegExp, string][] = [
   [/approve\s+(this|the)\s+transaction/gi, "[FILTERED:decision-manipulation]"],
   [/<\/?(system|assistant|user|data)>/gi, "[FILTERED:tag]"],
 ];
+
+export const MAX_UNTRUSTED_TEXT = 2000;
 
 export function scrubUntrusted(text: string): string {
   let out = text ?? "";
@@ -40,6 +42,9 @@ export function rejectRealCredentials(text: string): void {
 }
 
 export function guardUntrustedText(text: string): string {
+  if (new TextEncoder().encode(text).byteLength > MAX_UNTRUSTED_TEXT) {
+    throw new Error("untrusted text is too large");
+  }
   rejectRealCredentials(text);
   return scrubUntrusted(text);
 }

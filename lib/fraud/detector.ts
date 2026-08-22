@@ -1,4 +1,5 @@
 import { sigmoid } from "@/lib/rng";
+import { z } from "zod";
 import {
   DefenseConfig,
   DetectionOutput,
@@ -17,15 +18,32 @@ export const V1_FEATURES = [
   "probe_count_24h",
 ] as const;
 
-export interface DetectorWeights {
-  version: string;
-  feature_names: string[];
-  w: number[];
-  b: number;
-  threshold_block: number;
-  threshold_review: number;
-  trained_on: Record<string, unknown>;
-}
+export const DetectorWeightsSchema = z
+  .object({
+    version: z.string().min(1),
+    feature_names: z.array(z.string().min(1)).min(1),
+    w: z.array(z.number().finite()).min(1),
+    b: z.number().finite(),
+    threshold_block: z.number().min(0).max(1),
+    threshold_review: z.number().min(0).max(1),
+    trained_on: z.record(z.unknown()),
+  })
+  .strict()
+  .superRefine((model, ctx) => {
+    if (model.feature_names.length !== model.w.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "feature_names and weights must have equal length",
+      });
+    }
+    if (model.threshold_review > model.threshold_block) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "review threshold must not exceed block threshold",
+      });
+    }
+  });
+export type DetectorWeights = z.infer<typeof DetectorWeightsSchema>;
 
 export interface ScoredTx {
   tx: Featurized["tx"];

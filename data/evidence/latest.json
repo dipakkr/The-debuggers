@@ -1,0 +1,310 @@
+{
+  "generated_at": "2026-08-22T16:45:48.569Z",
+  "commit": "3bdb8040b0bf076946d39aa9d4846ade798706f2",
+  "mode": "demo",
+  "seeds": {
+    "train": 10101,
+    "search": 20202,
+    "blue_dev": 30303,
+    "final_test": 40404
+  },
+  "versions": {
+    "dataset_version": "synth-pop-1.2.0",
+    "attack_version": "genome-1.1.0",
+    "detector_version": "risk-engine-1.0.0",
+    "defense_version": "risk-engine-2.0.0",
+    "reasoning_version": "demo-policy-v1"
+  },
+  "baseline": {
+    "fraud_recall": 0.9253731343283582,
+    "precision": 0.06850828729281767,
+    "f1": 0.12757201646090535,
+    "fpr": 0.028433621154883973,
+    "fnr": 0.07462686567164178,
+    "review_rate": 0.0147733405288721,
+    "average_precision": 0.6540637254969631,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "n_legit": 29648,
+    "n_fraud": 67
+  },
+  "blind_spot": {
+    "scenario_id": "AF-1009",
+    "parent_scenario_id": "AF-1006",
+    "generation": 2,
+    "family": "mule_fanout",
+    "seed": 38058,
+    "genome": {
+      "family": "mule_fanout",
+      "amount": {
+        "base": 85,
+        "jitter": 0.2,
+        "drain_multiplier": 1
+      },
+      "velocity": {
+        "tx_per_hour": 3
+      },
+      "temporal": {
+        "start_hour_utc": 14,
+        "span_hours": 96
+      },
+      "merchant": {
+        "mcc": "grocery",
+        "new_merchant": true
+      },
+      "device": {
+        "age_days": 30,
+        "geo_jump_km": 0
+      },
+      "identity": {
+        "account_age_days": 90
+      },
+      "sequence": {
+        "probe_count": 0,
+        "interarrival_s": 19200,
+        "regularity": 0.5,
+        "drain_after_probe": false
+      }
+    },
+    "attack_success_rate": 0.75,
+    "risk_median": 0.0157,
+    "top_reasons": [
+      "ODD_HOUR",
+      "AMOUNT_ANOMALY",
+      "VELOCITY_HIGH"
+    ]
+  },
+  "blue_investigation": {
+    "source": "policy",
+    "proposal": {
+      "failure_hypothesis": "Evaded transactions are part of a coordinated newcomer burst: several recently-minted identities make their first payments at one merchant within 48 hours. Point-wise features stay individually mild, so the linear score under-fires while the cluster structure is visible in the merchant graph.",
+      "evidence": [
+        "median newcomer_count_48h on misses = 2.00",
+        "median newcomer_burst_score on misses = 0.63",
+        "median amt_z on misses only 2.00 — below classic anomaly thresholds",
+        "catch reasons concentrate elsewhere: ODD_HOUR, AMOUNT_ANOMALY, VELOCITY_HIGH"
+      ],
+      "candidate_features": [
+        "newcomer_count_48h",
+        "newcomer_burst_score"
+      ],
+      "recommended_change": "Set graph_weight to its bounded maximum (0.6) and nudge the decision threshold down 3 points. The deadzone keeps legitimate traffic unaffected; the referee's FPR gate polices the sensitivity increase.",
+      "defense_config": {
+        "threshold": 0.3574,
+        "escalation_weight": 0,
+        "pattern_weight": 0,
+        "graph_weight": 0.6
+      },
+      "expected_tradeoff": "Small deliberate FPR increase within the +1pt budget; recall gain concentrated on coordinated fan-out families.",
+      "confidence": 0.72
+    }
+  },
+  "defense_gate": {
+    "accepted": true,
+    "reasons": [],
+    "held_out_before": {
+      "fraud_recall": 0.4111111111111111,
+      "precision": 0.042045454545454546,
+      "f1": 0.07628865979381444,
+      "fpr": 0.028433621154883973,
+      "fnr": 0.5888888888888889,
+      "review_rate": 0.0147733405288721,
+      "average_precision": 0.13384005909667074,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "n_legit": 29648,
+      "n_fraud": 90
+    },
+    "held_out_after": {
+      "fraud_recall": 0.5,
+      "precision": 0.04573170731707317,
+      "f1": 0.08379888268156424,
+      "fpr": 0.031671613599568264,
+      "fnr": 0.5,
+      "review_rate": 0.015582838640043173,
+      "average_precision": 0.14536936346787627,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "n_legit": 29648,
+      "n_fraud": 90
+    },
+    "survival": [
+      {
+        "scenario_id": "AF-1009-H0",
+        "base_success": 0.8333333333333334,
+        "cand_success": 0.4166666666666667
+      },
+      {
+        "scenario_id": "AF-1009-H1",
+        "base_success": 1,
+        "cand_success": 0.5
+      },
+      {
+        "scenario_id": "AF-1009-H2",
+        "base_success": 0.5833333333333334,
+        "cand_success": 0.3333333333333333
+      },
+      {
+        "scenario_id": "AF-1009-H3",
+        "base_success": 0.5,
+        "cand_success": 0.4166666666666667
+      },
+      {
+        "scenario_id": "AF-1009-H4",
+        "base_success": 0.4166666666666667,
+        "cand_success": 0.4166666666666667
+      }
+    ]
+  },
+  "replay": {
+    "scenario_id": "AF-1009",
+    "seed": 38058,
+    "changed_decisions": 24,
+    "diff": [
+      {
+        "tx_id": "AF-1009-H0-A023",
+        "amount": 76.58,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H0-A047",
+        "amount": 96.37,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H0-A015",
+        "amount": 78.12,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H0-A039",
+        "amount": 87.04,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H0-A024",
+        "amount": 101.85,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H0-A016",
+        "amount": 68.84,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H0-A040",
+        "amount": 76.84,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H0-A048",
+        "amount": 79.48,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H0-A007",
+        "amount": 84.92,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H1-A031",
+        "amount": 68.94,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H1-A039",
+        "amount": 78.2,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H1-A015",
+        "amount": 81.8,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H2-A031",
+        "amount": 97.4,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H2-A015",
+        "amount": 91.08,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H2-A023",
+        "amount": 87.49,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H2-A047",
+        "amount": 83.72,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H2-A007",
+        "amount": 73.67,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H3-A007",
+        "amount": 89.56,
+        "before": "allow",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H3-A023",
+        "amount": 95.35,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H3-A016",
+        "amount": 97.69,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H4-A007",
+        "amount": 78.21,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H4-A031",
+        "amount": 96.21,
+        "before": "allow",
+        "after": "review"
+      },
+      {
+        "tx_id": "AF-1009-H4-A023",
+        "amount": 78.39,
+        "before": "review",
+        "after": "block"
+      },
+      {
+        "tx_id": "AF-1009-H4-A015",
+        "amount": 101.59,
+        "before": "allow",
+        "after": "block"
+      }
+    ]
+  }
+}
