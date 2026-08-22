@@ -3,9 +3,18 @@ import { z } from "zod";
 import { GenomeSchema } from "@/lib/contracts/genome";
 import { TEMPLATE_GENOMES } from "@/lib/attacks/templates";
 import { demoMutation } from "@/lib/mutations/demo-policy";
-import { ThreatAssessmentSchema, DEMO_ASSESSMENT } from "@/lib/threat-intel/families";
+import {
+  assessThreats,
+  ThreatAssessmentSchema,
+  DEMO_ASSESSMENT,
+} from "@/lib/threat-intel/families";
 import { chatStructured, type LlmResult } from "@/lib/genai/client";
 import { scrubUntrusted } from "@/lib/guards/injection";
+import { freshState } from "@/lib/state";
+import {
+  resetArena,
+  summarizeExperimentMemory,
+} from "@/lib/mutations/engine";
 
 const shape = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(shape);
@@ -55,5 +64,23 @@ describe("challenge contract gaps", () => {
     );
     expect(result).toEqual({ ok: true, data: { value: 7 }, source: "repair" });
     expect(replies).toHaveLength(0);
+  });
+
+  it("live threat interpretation falls back to reviewed intelligence", async () => {
+    const complete = async (): Promise<LlmResult> => ({
+      ok: false,
+      error: "offline",
+      source: "fallback",
+    });
+    const result = await assessThreats("live", "defensive note", complete);
+    expect(result).toEqual({ assessment: DEMO_ASSESSMENT, source: "curated" });
+  });
+
+  it("Red memory contains prior outcomes and lineage", () => {
+    const state = freshState("demo");
+    resetArena(state);
+    const memory = summarizeExperimentMemory(state);
+    expect(memory[0]).toMatchObject({ generation: 0, verdict: expect.any(String) });
+    expect(memory[0]).toHaveProperty("reason_codes");
   });
 });

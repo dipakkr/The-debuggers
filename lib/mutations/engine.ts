@@ -45,6 +45,25 @@ export interface GenerationResult {
   source: "llm" | "policy";
 }
 
+export function summarizeExperimentMemory(state: ArenaState) {
+  return [...state.scenarios.values()]
+    .sort(
+      (a, b) =>
+        b.scenario.generation - a.scenario.generation ||
+        b.scenario.scenario_id.localeCompare(a.scenario.scenario_id)
+    )
+    .slice(0, 12)
+    .map((record) => ({
+      scenario_id: record.scenario.scenario_id,
+      parent_scenario_id: record.scenario.parent_scenario_id,
+      generation: record.scenario.generation,
+      verdict: record.verdict,
+      attack_success_rate: record.outcome?.attack_success_rate ?? 0,
+      fitness: record.fitness ?? null,
+      reason_codes: record.reasons,
+    }));
+}
+
 /** Seed a fresh session: baseline scoreboard + loud root genomes as gen-0 beam. */
 export function resetArena(state = arena()): void {
   state.generation = 0;
@@ -201,13 +220,13 @@ Reply with ONLY a JSON array of genome objects. Each genome must match the provi
 
 async function llmMutations(
   parent: Genome,
-  outcomes: { verdict: string; successRate: number; riskMedian: number }[],
+  experimentMemory: ReturnType<typeof summarizeExperimentMemory>,
   k: number
 ): Promise<Genome[]> {
   const user = `<data>
 attack_family: ${parent.family}
 parent_genome: ${JSON.stringify(parent)}
-recent_outcomes: ${JSON.stringify(outcomes)}
+experiment_memory: ${JSON.stringify(experimentMemory)}
 task: propose ${k} mutations of the parent genome that reduce detector detection while staying behaviourally realistic for this family.
 rules: keep every field within the same bounds as the parent schema; small coherent moves beat wild jumps.
 </data>`;
@@ -236,6 +255,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
       : [...state.scenarios.values()].filter((s) => s.scenario.generation === 0).map((s) => s.scenario.scenario_id);
 
   let usedLlm = false;
+  const experimentMemory = summarizeExperimentMemory(state);
   const batch: { genome: Genome; scenario_id: string; seed: number; parent: string | null; generation: number }[] = [];
   for (const pid of parentIds) {
     const parentRec = state.scenarios.get(pid);
@@ -245,13 +265,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
 
     let mutants: Genome[] = [];
     if (state.mode === "live" && liveModeAvailable()) {
-      mutants = await llmMutations(parent, [
-        {
-          verdict: parentRec.verdict,
-          successRate: parentRec.outcome?.attack_success_rate ?? 0,
-          riskMedian: parentRec.riskStats?.median ?? 0,
-        },
-      ], 2);
+      mutants = await llmMutations(parent, experimentMemory, 2);
       if (mutants.length > 0) usedLlm = true;
     }
     if (mutants.length === 0) {
