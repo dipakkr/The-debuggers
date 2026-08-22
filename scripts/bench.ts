@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { buildWorld, generateLegitStream } from "@/lib/simulator/world";
 import { featurize } from "@/lib/fraud/features";
 import {
@@ -59,27 +59,35 @@ function trial(days: number): Trial {
   };
 }
 
-function bench(days: number, label: string): void {
+function bench(days: number, label: string) {
   const trials = Array.from({ length: 5 }, () => trial(days));
   const field = (key: keyof Trial) => median(trials.map((item) => item[key]));
-  console.log(
-    JSON.stringify({
-      label,
-      transactions: Math.round(field("transactions")),
-      generation_tx_s: Math.round(field("generation_tx_s")),
-      feature_tx_s: Math.round(field("feature_tx_s")),
-      scoring_tx_s: Math.round(field("scoring_tx_s")),
-      p50_latency_ms: field("p50_latency_ms"),
-      p95_latency_ms: field("p95_latency_ms"),
-      memory_rss_mb: Math.round(field("memory_rss_mb")),
-      experiment_ms: Math.round(field("experiment_ms")),
-      trials: trials.length,
-      node: process.version,
-      platform: `${process.platform}-${process.arch}`,
-    })
-  );
+  return {
+    label,
+    transactions: Math.round(field("transactions")),
+    generation_tx_s: Math.round(field("generation_tx_s")),
+    feature_tx_s: Math.round(field("feature_tx_s")),
+    scoring_tx_s: Math.round(field("scoring_tx_s")),
+    p50_latency_ms: field("p50_latency_ms"),
+    p95_latency_ms: field("p95_latency_ms"),
+    memory_rss_mb: Math.round(field("memory_rss_mb")),
+    experiment_ms: Math.round(field("experiment_ms")),
+    trials: trials.length,
+    node: process.version,
+    platform: `${process.platform}-${process.arch}`,
+  };
 }
 
-bench(1, "1k-ish");
-bench(10, "10k-ish");
-bench(100, "100k-ish");
+const results = [
+  bench(1, "1k-ish"),
+  bench(10, "10k-ish"),
+  bench(100, "100k-ish"),
+];
+for (const result of results) console.log(JSON.stringify(result));
+
+mkdirSync("data/evidence", { recursive: true });
+writeFileSync(
+  "data/evidence/benchmark.json",
+  JSON.stringify({ generated_at: new Date().toISOString(), results }, null, 2) +
+    "\n"
+);

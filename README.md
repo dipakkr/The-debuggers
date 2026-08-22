@@ -1,94 +1,216 @@
 # ADVERSARIAL FRAUD ARENA
 
-> **Generate tomorrow's fraud today.**
+> Generate tomorrow's fraud today.
 
+```text
+AI RED TEAM -> SYNTHETIC PAYMENT NETWORK -> FRAUD DEFENSE
+     ^                                        |
+     |                                DETERMINISTIC REFEREE
+     |                                        |
+     +-------------- AI BLUE TEAM <-----------+
 ```
-   AI RED TEAM  ──►  SYNTHETIC PAYMENT NETWORK  ──►  FRAUD DEFENSE
-        ▲                                                      │
-        │                                              DETERMINISTIC REFEREE
-        │                                                      │
-        └───────────────── AI BLUE TEAM ◄──────────────────────┘
-                    (blind spot → investigation → gated defense → replay)
+
+**IDENTIFY -> GENERATE -> DEFEND**
+
+Fraud models learn from attacks that already happened. The Arena generates new attacks before they reach production.
+
+The Red Team evolves bounded synthetic payment attacks against a real detector. The Blue Team investigates a confirmed failure.
+
+The Referee owns all labels, metrics, seeds, gates, and replay results. Neither AI grades itself.
+
+Repository: [namangoyal3/mastercard-innovation-challenge](https://github.com/namangoyal3/mastercard-innovation-challenge)
+
+## The product
+
+The Arena runs one complete payment-defense loop:
+
+```text
+IDENTIFY -> GENERATE -> ATTACK -> EVADE -> DISCOVER -> DEFEND -> REPLAY -> MEASURE
 ```
 
-An AI red team continuously invents and evolves **synthetic** payment-fraud strategies against a live fraud detector. When an evolved attack evades detection, a blue-team investigator explains why, proposes a bounded defense, and a **deterministic referee** replays the exact attack to prove whether it improved.
+The application includes these judge-visible views:
 
-Neither AI grades itself. Every number on screen comes from code.
+- The Command Center shows the live Red, Rail, Blue, and Referee state.
+- Threat Intelligence shows ten defensive threat families.
+- Fraud Evolution shows every parent, child, verdict, and fitness result.
+- Blue Investigation shows measured failure evidence and a bounded proposal.
+- Defense Validation shows the gate verdict, held-out metrics, and exact replay.
+- Experiment Audit shows seeds, versions, identifiers, and authoritative results.
 
-[Quickstart](#quickstart) · [How it works](#how-it-works) · [Measured results](#measured-results) · [Demo script](#three-minute-demo) · [Docs](#docs)
+The application labels all activity as a **SYNTHETIC PAYMENT ENVIRONMENT**.
 
----
+## Quick start
 
-## Quickstart
+Use Node.js 22.
 
 ```bash
-npm install
-npm run train     # fit baseline detector on seeded synthetic data (~10s)
-npm test          # 26 tests: adversarial loop, gate, replay, security, load
-npm run build && npm start    # open http://localhost:3000
+npm ci
+npm run evidence
+npm run selfcheck
+npm run dev
 ```
 
-Then press **RUN RED TEAM** and watch:
+Open `http://localhost:3000`.
 
-```
-ATTEMPT … BLOCKED · BLOCKED · EVADED ✓ → BLIND SPOT DISCOVERED
-→ INVESTIGATE → VALIDATE DEFENSE → BEFORE/AFTER replay
-```
+Select **RUN RED TEAM**. Then complete these actions:
 
-`DEMO` mode is deterministic and offline-safe. Switch to `LIVE` mode with any OpenAI-compatible endpoint:
+1. Wait for the blind-spot alert.
+2. Select **INVESTIGATE**.
+3. Select **VALIDATE DEFENSE**.
+4. Review the held-out metrics and exact replay.
+
+## Demo mode and live mode
+
+Demo mode needs no API key or internet connection. It uses reviewed reasoning fixtures through the same strict contracts.
+
+The simulator, detector, mutation loop, Referee, Defense Gate, metrics, and replay always run as real code.
+
+Configure live mode with an OpenAI-compatible endpoint:
 
 ```bash
-OPENAI_API_KEY=sk-… OPENAI_BASE_URL=https://api.openai.com/v1 ARENA_MODEL=gpt-4o-mini npm start
+OPENAI_API_KEY=<key> \
+OPENAI_BASE_URL=https://api.openai.com/v1 \
+ARENA_MODEL=<model> \
+npm start
 ```
 
-## How it works
+**Warning:** Never commit a real API key.
 
-| Stage | Module | What happens |
+The application falls back to the reviewed policy after a provider timeout or invalid response.
+
+## Architecture
+
+| Stage | Owner | Implementation |
 |---|---|---|
-| IDENTIFY | `lib/threat-intel` | curated GenAI-fraud corpus; 3 families selected |
-| GENERATE | `lib/mutations` | strategist/policy mutates schema-bounded **Fraud Genomes**, conditioned on referee outcomes |
-| ATTACK | `lib/simulator` | pure compiler emits transactions into a seeded payment twin |
-| DEFEND | `lib/fraud` | rules + logistic regression + blue-team graph/sequence knobs |
-| INVESTIGATE | `lib/defense/investigator` | false-negative feature evidence → bounded proposal |
-| MEASURE | `lib/referee` | splits, metrics, blind-spot confirmation, acceptance gate, exact replay, JSONL ledger |
+| IDENTIFY | GenAI or reviewed fixture | Threat interpretation with a strict output schema |
+| GENERATE | GenAI or deterministic policy | Outcome-conditioned Fraud Genome mutation |
+| ATTACK | Deterministic code | Seeded scenario compiler and payment simulator |
+| DEFEND | ML and rules | Logistic regression, rules, and bounded graph signals |
+| INVESTIGATE | GenAI or deterministic policy | Evidence-grounded failure and defense hypotheses |
+| MEASURE | Deterministic code | Metrics, novelty, fitness, gates, replay, and audit records |
 
-**Fraud Genome**: every attack is ~15 bounded parameters (amounts, cadence, device age, regularity…). Out-of-range mutants are rejected as evidence, never simulated.
+The Fraud Genome contains only allowlisted behavioral fields. The schema rejects unsupported families and invalid values.
 
-**Blind spot = proven, not claimed**: evasion must reproduce across fresh confirmation seeds before the referee declares it.
+The Red Team receives the previous verdict, fitness, reason codes, lineage, and the remaining mutation budget.
 
-**Defense Gate**: threat-class recall gain ≥ +5 pts · ΔFPR ≤ +1 pt · ≥80% fresh-seed survival · exact replay — or the proposal is rejected (honestly).
+The Red Team uses bounded evolutionary search. Generation N depends on the outcomes from Generation N-1.
 
-## Measured results
+The baseline combines calibrated rules with a trained logistic regression model. It catches known attack templates before Red begins.
 
-Fixed seeds; reproduce via `npm test`.
+The advanced defense adds two graph-derived convergence signals. The Defense Gate accepts only measured improvements.
 
-- Baseline v1: **92.5% recall @ 2.84% FPR** on known attack templates
-- Red team: novel mule-network variant confirmed after 2 generations; evades up to **100%** of its rows on held-out seeds
-- Blue defense accepted by the referee: threat-class success **0.83–1.00 → 0.33–0.50**, ΔFPR **+0.33 pt**, replay shows **24 transactions** flipping decision between engines
-- Throughput: **213k tx scored at ~1.7M tx/s**, per-tx p95 ≤ 1 ms
+## Measured evidence
 
-## Three-minute demo
+Run `npm run evidence` to reproduce the current deterministic experiment.
 
-0. `RESET` → baseline traffic: legit ALLOWED, templates BLOCKED (referee bar).
-1. `RUN RED TEAM` → generations stream; evolution tree grows; blocked attempts feed the next mutation.
-2. **BLIND SPOT DISCOVERED** banner — referee-confirmed across fresh seeds.
-3. `INVESTIGATE` → evidence panel cites measured medians on missed rows.
-4. `VALIDATE DEFENSE` → gate runs; verdict chip ACCEPTED.
-5. Replay table: same seed, same transactions — `allow → block/review` under v2.
-6. Press generation again: red now evolves against the defended engine.
+The committed evidence records commit `3bdb804` and fixed seeds.
 
-## Docs
+| Metric | Known-template baseline | Held-out attack before | Held-out attack after |
+|---|---:|---:|---:|
+| Fraud recall | 92.54% | 41.11% | 50.00% |
+| Precision | 6.85% | 4.20% | 4.57% |
+| F1 | 12.76% | 7.63% | 8.38% |
+| False-positive rate | 2.84% | 2.84% | 3.17% |
+| False-negative rate | 7.46% | 58.89% | 50.00% |
+| Average precision | 65.41% | 13.38% | 14.54% |
 
-- [`docs/architecture.md`](docs/architecture.md) — modules, loop, split hygiene
-- [`docs/evaluation.md`](docs/evaluation.md) — all measured numbers
-- [`docs/threat-model.md`](docs/threat-model.md) — what is untrusted and how it is contained
-- [`docs/responsible-ai.md`](docs/responsible-ai.md) — safety by construction
-- [`docs/judge-qa.md`](docs/judge-qa.md) — 20 hard questions, answered from evidence
-- `docs/Adversarial-Fraud-Arena-Solution.docx` — submission document (`npm run docx`)
+The accepted defense reduced attack success for four of five fresh descendants. One descendant showed no change.
 
-## Safety
+The exact replay changed 24 decisions on the same stored scenario and seed.
 
-Everything here is synthetic. No real cards, accounts or people exist in this system; credential-shaped input is rejected at the door; attack knowledge is abstract parameter ranges, not playbooks. See `docs/responsible-ai.md`.
+These results prove a prototype behavior. They do not claim production effectiveness.
+
+## Performance benchmark
+
+Run `npm run bench` to create `data/evidence/benchmark.json`.
+
+The benchmark uses five trials on Node.js 22 and an Apple Silicon Mac.
+
+| Transactions | Generation | Feature pass | Scoring | Peak RSS | Experiment |
+|---:|---:|---:|---:|---:|---:|
+| 1,053 | 1.61M tx/s | 438,674 tx/s | 944,535 tx/s | 93 MB | 5 ms |
+| 10,308 | 2.80M tx/s | 281,774 tx/s | 1.55M tx/s | 150 MB | 46 ms |
+| 101,673 | 2.37M tx/s | 247,602 tx/s | 2.08M tx/s | 329 MB | 508 ms |
+
+The prototype uses one process. The results do not represent Mastercard-scale performance.
+
+## Scientific method
+
+The Referee separates four environments:
+
+1. The training set fits the baseline on known fraud templates.
+2. The Red search set supports adaptive attack exploration.
+3. The Blue development set supports the defense hypothesis.
+4. The final test uses fresh attack seeds and legitimate traffic.
+
+The Referee confirms a blind spot across four fresh seeds. The Defense Gate then uses five held-out descendants.
+
+The gate requires these conditions:
+
+- The threat recall gain equals at least five percentage points.
+- The false-positive increase stays within one percentage point.
+- At least 80 percent of fresh descendants improve.
+- The exact replay uses the stored scenario and seed.
+
+See [the methodology](docs/methodology.md) for the formulas and split rules.
+
+## Security model
+
+The repository contains no real cards, customers, credentials, or payment endpoints.
+
+The guards reject these inputs:
+
+- Real PAN, CVV, OTP, and IBAN patterns
+- Prompt injection in merchant or threat text
+- Unsupported attack types
+- Out-of-range attack parameters
+- Oversized requests
+- Unsafe external provider URLs
+- Malformed model artifacts
+- LLM-generated metrics or verdicts
+
+The test suite checks provider failure, malformed output, one repair attempt, and deterministic fallback behavior.
+
+## Verification
+
+Run the complete repository check:
+
+```bash
+npm run selfcheck
+```
+
+The command runs the linter, type checker, tests, evidence validation, and production build.
+
+Generate a continuation file for another coding agent:
+
+```bash
+npm run handoff
+```
+
+The command creates an ignored `CLAUDE_RESUME.md`. It never reads or writes environment secrets.
+
+## Documentation
+
+- [Approved blueprint](docs/superpowers/specs/2026-08-22-adversarial-fraud-arena-design.md)
+- [Architecture](docs/architecture.md)
+- [Threat research](docs/threat-research.md)
+- [Experimental methodology](docs/methodology.md)
+- [Measured evaluation](docs/evaluation.md)
+- [Rubric coverage](docs/rubric-coverage.md)
+- [Security threat model](docs/threat-model.md)
+- [Responsible AI](docs/responsible-ai.md)
+- [Judge questions](docs/judge-qa.md)
+- `docs/Adversarial-Fraud-Arena-Solution.docx`
+
+Generate the Word document with `npm run docx`.
+
+## Limits
+
+The simulator uses stylized synthetic behavior. A production system needs authorized network data and institution-specific calibration.
+
+The graph defense models merchant convergence only. It does not model a complete cross-institution identity network.
+
+The prototype runs in one process. Production deployment needs durable storage, workload isolation, and independent model governance.
 
 ## License
 

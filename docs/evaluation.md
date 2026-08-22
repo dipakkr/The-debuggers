@@ -1,61 +1,120 @@
-# Evaluation
+# Measured Evaluation
 
-All numbers below are produced by `lib/referee` on this repository's fixed seeds. Reproduce with `npm test` and the API walkthrough in the README.
+The Referee produced all results in this document. The file `data/evidence/latest.json` stores the source values.
 
-## Baseline detector (v1)
+Run this command to reproduce the experiment:
 
-Logistic regression over 7 behavioural features + 2 policy rules, trained by `npm run train` on the TRAIN split (world seed 20260822, train seed 10101).
+```bash
+npm run evidence
+```
 
-| Measure | Value (held-out FINAL pool) |
+## Evidence identity
+
+| Field | Value |
 |---|---|
-| Recall on loud canonical templates | 0.925 |
-| False-positive rate (blocks) | 0.0284 |
-| Review rate | ~0.014 |
-| p95 scoring latency per transaction | ≤ 0.001 ms |
+| Evidence commit | `3bdb8040b0bf076946d39aa9d4846ade798706f2` |
+| Dataset | `synth-pop-1.2.0` |
+| Attack contract | `genome-1.1.0` |
+| Baseline detector | `risk-engine-1.0.0` |
+| Candidate defense | `risk-engine-2.0.0` |
+| Reasoning policy | `demo-policy-v1` |
+| Training seed | `10101` |
+| Red search seed | `20202` |
+| Blue development seed | `30303` |
+| Final test seed | `40404` |
 
-The baseline is not a strawman: it catches card-testing bursts 22/22 and loud mule bursts 18/18 at calibration time.
+## Baseline on known templates
 
-## Red-team discovery
+The baseline uses calibrated rules and a trained logistic regression model. The evaluation contains 29,648 legitimate and 67 fraud transactions.
 
-- Blind spot confirmed after **2 generations** of outcome-conditioned mutation (mule lineage).
-- Confirmation pass: evasion must hold a median attack-success ≥ 0.34 across **4 fresh seeds** — seed-luck does not qualify.
-- On 5 held-out fresh-seed recompiles of the discovered genome, v1 allowed **42–100%** of fraud rows (median ≈ 58%).
+| Metric | Value |
+|---|---:|
+| Fraud recall | 92.54% |
+| Precision | 6.85% |
+| F1 | 12.76% |
+| False-positive rate | 2.84% |
+| False-negative rate | 7.46% |
+| Review rate | 1.48% |
+| Average precision | 65.41% |
 
-## Defense validation
+The low precision reflects the intentionally imbalanced payment stream. The system never uses accuracy as a headline metric.
 
-Blue proposal (from measured false-negative evidence): `graph_weight = 0.6`, threshold −3 points.
+## Red discovery
 
-Gate result on FINAL split:
+Red found scenario `AF-1009` in generation 2. The scenario descends from `AF-1006`.
 
-| Fresh-seed variant | Attack success v1 | Attack success v2 |
-|---|---|---|
-| H0 | 0.83 | 0.42 |
-| H1 | 1.00 | 0.50 |
-| H2 | 0.58 | 0.33 |
-| H3 | 0.50 | 0.42 |
-| H4 | 0.42 | 0.42 |
+The attack uses the `mule_fanout` family and seed `38058`. Its discovery attack-success rate equals 75 percent.
 
-- Threat-class caught-rate gain: **≥ +11 points** (gate bar: +5).
-- ΔFPR: **+0.33 points** (budget: +1).
-- Seed survival: **4/5 improved** (bar: 80%).
-- Verdict: **ACCEPTED**.
-- Exact replay: **24 transactions** change decision between engines on identical compiled streams.
+The policy changed the synthetic behavior after earlier detector results. The stored lineage proves this dependency.
 
-A rejected defense is also a valid referee outcome; the ledger records both.
+The Referee confirmed the blind spot with fresh seeds before the Blue Team received the scenario.
 
-## Throughput (measured, not extrapolated)
+## Held-out defense result
 
-`npm run bench` on Node 22, single process:
+The final test combines the new attack family with untouched legitimate traffic. It contains 29,648 legitimate and 90 fraud transactions.
 
-| Stage | Rate |
-|---|---|
-| Legit stream generation | ~2.4M tx/s |
-| Feature pass | ~316k tx/s |
-| Scoring | ~1.7M tx/s |
-| Per-tx p95 latency | ≤ 1 ms |
+| Metric | Before defense | After defense | Change |
+|---|---:|---:|---:|
+| Fraud recall | 41.11% | 50.00% | +8.89 points |
+| Precision | 4.20% | 4.57% | +0.37 points |
+| F1 | 7.63% | 8.38% | +0.75 points |
+| False-positive rate | 2.84% | 3.17% | +0.32 points |
+| False-negative rate | 58.89% | 50.00% | -8.89 points |
+| Review rate | 1.48% | 1.56% | +0.08 points |
+| Average precision | 13.38% | 14.54% | +1.15 points |
 
-End-to-end the prototype sustains roughly 260k tx/s, bounded by the feature pass. Horizontal scaling path: shard by customer/merchant partition; features are per-customer plus per-merchant local state only.
+The Defense Gate accepted the proposal. The recall gain exceeded five points, and the FPR increase stayed below one point.
 
-## Test suite
+## Fresh-descendant survival
 
-26 vitest tests cover the T1–T25 matrix from the challenge contract: legitimate allow, known-fraud block, schema rejection, injection neutrality, credential rejection, provider-timeout fallback, replay byte-stability, load smoke. Run `npm run selfcheck` (lint + typecheck + tests + build).
+| Descendant | Attack success before | Attack success after | Result |
+|---|---:|---:|---|
+| `AF-1009-H0` | 83.33% | 41.67% | Improved |
+| `AF-1009-H1` | 100.00% | 50.00% | Improved |
+| `AF-1009-H2` | 58.33% | 33.33% | Improved |
+| `AF-1009-H3` | 50.00% | 41.67% | Improved |
+| `AF-1009-H4` | 41.67% | 41.67% | No change |
+
+Four of five descendants improved. This result meets the 80 percent survival gate.
+
+## Exact replay
+
+The Referee recompiled scenario `AF-1009` with seed `38058`. It then scored the same transactions with both defense versions.
+
+The replay recorded 24 decision changes. The committed evidence stores every changed transaction identifier and decision.
+
+This replay provides causal evidence for the stored scenario. The fresh descendants provide the separate generalization check.
+
+## Benchmark
+
+The benchmark uses five trials per scale. It ran on Node.js `v22.22.3` and `darwin-arm64`.
+
+| Transactions | Generation rate | Feature rate | Scoring rate | P95 scoring latency | RSS | Duration |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1,053 | 1,605,183 tx/s | 438,674 tx/s | 944,535 tx/s | 0.001 ms | 93 MB | 5 ms |
+| 10,308 | 2,800,961 tx/s | 281,774 tx/s | 1,547,573 tx/s | 0.001 ms | 150 MB | 46 ms |
+| 101,673 | 2,367,510 tx/s | 247,602 tx/s | 2,079,713 tx/s | 0.000 ms | 329 MB | 508 ms |
+
+The timer rounds very short per-row values to three decimals. Use throughput and experiment duration for this in-process benchmark.
+
+The benchmark does not include network, database, queue, or provider latency. It does not claim Mastercard-scale performance.
+
+## Test evidence
+
+The test suite covers the required T1 through T25 behaviors and extra contract checks.
+
+The checks include these areas:
+
+- Known fraud and legitimate traffic
+- Outcome-conditioned mutations and lineage
+- Schema and boundary rejection
+- Blind-spot confirmation and metric integrity
+- Blue evidence and proposal validation
+- Exact replay and held-out descendants
+- False-positive regression
+- Prompt injection and credential rejection
+- Provider timeout and malformed output
+- Stable seeds, versions, and experiment identifiers
+- UI accessibility and load smoke tests
+
+Run `npm run selfcheck` to execute the complete repository check.

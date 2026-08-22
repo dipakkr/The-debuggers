@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-08-22T16:47:48.379Z",
+  "results": [
+    {
+      "label": "1k-ish",
+      "transactions": 1053,
+      "generation_tx_s": 1605183,
+      "feature_tx_s": 438674,
+      "scoring_tx_s": 944535,
+      "p50_latency_ms": 0.001,
+      "p95_latency_ms": 0.001,
+      "memory_rss_mb": 93,
+      "experiment_ms": 5,
+      "trials": 5,
+      "node": "v22.22.3",
+      "platform": "darwin-arm64"
+    },
+    {
+      "label": "10k-ish",
+      "transactions": 10308,
+      "generation_tx_s": 2800961,
+      "feature_tx_s": 281774,
+      "scoring_tx_s": 1547573,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0.001,
+      "memory_rss_mb": 150,
+      "experiment_ms": 46,
+      "trials": 5,
+      "node": "v22.22.3",
+      "platform": "darwin-arm64"
+    },
+    {
+      "label": "100k-ish",
+      "transactions": 101673,
+      "generation_tx_s": 2367510,
+      "feature_tx_s": 247602,
+      "scoring_tx_s": 2079713,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "memory_rss_mb": 329,
+      "experiment_ms": 508,
+      "trials": 5,
+      "node": "v22.22.3",
+      "platform": "darwin-arm64"
+    }
+  ]
+}
