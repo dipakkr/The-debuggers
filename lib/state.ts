@@ -27,6 +27,7 @@ export interface ArenaState {
   defenseProposal: unknown | null;
   defenseConfig: unknown | null;
   defenseAccepted: boolean | null;
+  gateBaselineRun: EvalRun | null;
   gateRun: EvalRun | null;
   replayDiff: unknown | null;
   gateReasons: string[];
@@ -46,6 +47,7 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
     defenseProposal: null,
     defenseConfig: null,
     defenseAccepted: null,
+    gateBaselineRun: null,
     gateRun: null,
     replayDiff: null,
     gateReasons: [],

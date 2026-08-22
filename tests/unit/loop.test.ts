@@ -10,6 +10,7 @@ import { demoMutation } from "@/lib/mutations/demo-policy";
 import { investigate } from "@/lib/defense/investigator";
 import { runDefenseGate } from "@/lib/defense/gate";
 import { refereeEvaluate, SEEDS } from "@/lib/referee/referee";
+import { serializeState } from "@/lib/serialize";
 
 const model = JSON.parse(
   readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
@@ -115,6 +116,10 @@ describe("phase 2: blue investigation + gated defense", () => {
     // legitimate regression metrics exist on both sides
     expect(typeof gate.finalCand!.metrics.fpr).toBe("number");
     expect(typeof gate.finalCand!.metrics.review_rate).toBe("number");
+
+    const snapshot = serializeState(state);
+    expect(snapshot.duringAttack).toEqual(gate.finalBase!.metrics);
+    expect(snapshot.afterDefense).toEqual(gate.finalCand!.metrics);
 
     // exact replay of the original discovery scenario under both configs
     const again = runDefenseGate(state, model, proposal);

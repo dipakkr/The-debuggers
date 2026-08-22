@@ -84,6 +84,7 @@ export function resetArena(state = arena()): void {
   state.defenseProposal = null;
   state.defenseConfig = null;
   state.defenseAccepted = null;
+  state.gateBaselineRun = null;
   state.gateRun = null;
   state.replayDiff = null;
 

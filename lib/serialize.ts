@@ -28,7 +28,7 @@ export function serializeState(state: ArenaState) {
     beam: state.beam,
     blindSpotScenarioId: state.blindSpotScenarioId,
     baseline: state.baselineRun?.metrics ?? null,
-    duringAttack: state.lastSearchMetrics,
+    duringAttack: state.gateBaselineRun?.metrics ?? state.lastSearchMetrics,
     afterDefense: state.gateRun?.metrics ?? null,
     defenseAccepted: state.defenseAccepted,
     defenseProposal: state.defenseProposal,

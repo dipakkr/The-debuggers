@@ -181,6 +181,7 @@ export function runDefenseGate(
   }
   state.defenseAccepted = verdict.accepted;
   state.gateReasons = verdict.reasons;
+  state.gateBaselineRun = baseRun;
   state.gateRun = candRun;
   state.replayDiff = diffs;
 
