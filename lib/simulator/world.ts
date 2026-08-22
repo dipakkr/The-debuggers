@@ -101,11 +101,16 @@ export function generateLegitStream(world: World, seed: number, days: number, ep
         const merchant =
           rng() < 0.88 ? merchantById(world, c.pref_merchants[Math.floor(rng() * c.pref_merchants.length)])! : pick(rng, world.merchants);
         const amount = lognormal(rng, c.mean_amount, c.amount_cv);
+        const tsMs = Math.round(ts);
         out.push({
           tx_id: "",
-          ts_ms: Math.round(ts),
+          ts_ms: tsMs,
           amount: Math.round(amount * 100) / 100,
+          currency: "USD",
           customer_id: c.id,
+          account_id: `A-${c.id}`,
+          token_id: `T-${c.id}`,
+          session_id: `S-${c.id}-${Math.floor(tsMs / DAY_MS)}`,
           account_age_days: c.account_age_days,
           merchant_id: merchant.id,
           mcc: merchant.mcc,

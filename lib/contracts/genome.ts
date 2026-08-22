@@ -98,7 +98,11 @@ export interface Transaction {
   tx_id: string;
   ts_ms: number;
   amount: number;
+  currency: "USD";
   customer_id: string;
+  account_id: string;
+  token_id: string;
+  session_id: string;
   account_age_days: number;
   merchant_id: string;
   mcc: string;
@@ -154,6 +158,7 @@ export interface Versions {
   attack_version: string;
   detector_version: string;
   defense_version: string;
+  reasoning_version: string;
 }
 
 export const VERSIONS: Versions = {
@@ -161,7 +166,20 @@ export const VERSIONS: Versions = {
   attack_version: "genome-1.1.0",
   detector_version: "risk-engine-1.0.0",
   defense_version: "risk-engine-2.0.0",
+  reasoning_version: "demo-policy-v1",
 };
+
+export function versionStamp(
+  mode: "demo" | "live",
+  defenseVersion = VERSIONS.defense_version
+): Versions {
+  return {
+    ...VERSIONS,
+    defense_version: defenseVersion,
+    reasoning_version:
+      mode === "live" ? process.env.ARENA_MODEL ?? "gpt-4o-mini" : "demo-policy-v1",
+  };
+}
 
 export interface ExperimentRow {
   experiment_id: string;

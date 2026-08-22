@@ -1,4 +1,10 @@
-import { DefenseConfig, DefenseConfigSchema, Proposal, V1_AS_DEFENSE } from "@/lib/contracts/genome";
+import {
+  DefenseConfig,
+  DefenseConfigSchema,
+  Proposal,
+  V1_AS_DEFENSE,
+  versionStamp,
+} from "@/lib/contracts/genome";
 import { ArenaState } from "@/lib/state";
 import { DetectorWeights } from "@/lib/fraud/detector";
 import {
@@ -9,7 +15,7 @@ import {
   replayPair,
   refereeEvaluate,
 } from "@/lib/referee/referee";
-import { appendExperiment } from "@/lib/referee/ledger";
+import { appendExperiment, makeExperimentId } from "@/lib/referee/ledger";
 
 export interface GateResult {
   accepted: boolean;
@@ -36,10 +42,14 @@ export function runDefenseGate(
   const parsed = DefenseConfigSchema.safeParse(proposal.defense_config);
   if (!parsed.success) {
     appendExperiment({
-      experiment_id: `EXP-${Date.now()}-gate`,
+      experiment_id: makeExperimentId({
+        kind: "gate",
+        decision: "invalid",
+        defense_config: JSON.stringify(proposal.defense_config),
+      }),
       ts: new Date().toISOString(),
       kind: "gate",
-      versions: { dataset_version: "synth-pop-1.2.0", attack_version: "genome-1.1.0", detector_version: "risk-engine-1.0.0", defense_version: "rejected-config" },
+      versions: versionStamp(state.mode, "rejected-config"),
       decision: "REJECT",
       notes: "defense_config failed schema/policy validation",
     });
@@ -123,12 +133,17 @@ export function runDefenseGate(
   const replayAfterMetrics = candRun.metrics;
 
   appendExperiment({
-    experiment_id: `EXP-${Date.now()}-gate`,
+    experiment_id: makeExperimentId({
+      kind: "gate",
+      scenario_id: blind.scenario.scenario_id,
+      seed: blind.scenario.seed,
+      defense_config: JSON.stringify(candidate),
+    }),
     ts: new Date().toISOString(),
     kind: "gate",
     scenario_id: blind.scenario.scenario_id,
     seed: blind.scenario.seed,
-    versions: { dataset_version: "synth-pop-1.2.0", attack_version: "genome-1.1.0", detector_version: "risk-engine-1.0.0", defense_version: "risk-engine-2.0.0" },
+    versions: versionStamp(state.mode),
     metrics: {
       base_recall: baseRun.metrics.fraud_recall,
       cand_recall: candRun.metrics.fraud_recall,
@@ -141,12 +156,17 @@ export function runDefenseGate(
     notes: verdict.reasons.join("; ") || "all gates passed",
   });
   appendExperiment({
-    experiment_id: `EXP-${Date.now()}-replay`,
+    experiment_id: makeExperimentId({
+      kind: "replay",
+      scenario_id: blind.scenario.scenario_id,
+      seed: blind.scenario.seed,
+      defense_config: JSON.stringify(candidate),
+    }),
     ts: new Date().toISOString(),
     kind: "replay",
     scenario_id: blind.scenario.scenario_id,
     seed: blind.scenario.seed,
-    versions: { dataset_version: "synth-pop-1.2.0", attack_version: "genome-1.1.0", detector_version: "risk-engine-1.0.0", defense_version: "risk-engine-2.0.0" },
+    versions: versionStamp(state.mode),
     metrics: {
       before_recall: replayBeforeMetrics.fraud_recall,
       after_recall: replayAfterMetrics.fraud_recall,

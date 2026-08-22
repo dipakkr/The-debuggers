@@ -1,4 +1,9 @@
-import { Genome, GenomeSchema, ScenarioSchema } from "@/lib/contracts/genome";
+import {
+  Genome,
+  GenomeSchema,
+  ScenarioSchema,
+  versionStamp,
+} from "@/lib/contracts/genome";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { DetectorWeights } from "@/lib/fraud/detector";
@@ -7,7 +12,7 @@ import { refereeEvaluate, SEEDS, ScenarioOutcome } from "@/lib/referee/referee";
 import { computeFitness } from "@/lib/referee/fitness";
 import { isNovel } from "@/lib/attacks/templates";
 import { demoMutation, rootGenome } from "./demo-policy";
-import { appendExperiment } from "@/lib/referee/ledger";
+import { appendExperiment, makeExperimentId } from "@/lib/referee/ledger";
 import { chatStructured, liveModeAvailable } from "@/lib/genai/client";
 
 let idCounter = 1000;
@@ -194,15 +199,15 @@ function registerBatch(
   state.lastSearchMetrics = run.metrics;
 
   appendExperiment({
-    experiment_id: `EXP-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    experiment_id: makeExperimentId({
+      kind: "generation",
+      generation: state.generation,
+      scenario_ids: batch.map((item) => item.scenario_id).join(","),
+      seeds: batch.map((item) => item.seed).join(","),
+    }),
     ts: new Date().toISOString(),
     kind: "generation",
-    versions: {
-      dataset_version: "synth-pop-1.2.0",
-      attack_version: "genome-1.1.0",
-      detector_version: "risk-engine-1.0.0",
-      defense_version: defense ? "risk-engine-2.0.0" : "none",
-    },
+    versions: versionStamp(state.mode, defense ? "risk-engine-2.0.0" : "none"),
     metrics: {
       mean_fitness: views.reduce((s, v) => s + (v.fitness ?? 0), 0) / Math.max(1, views.length),
       max_attack_success: Math.max(0, ...views.map((v) => v.attack_success_rate ?? 0)),
@@ -341,17 +346,17 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
     state.blindSpotScenarioId = confirmedId;
     const rec = state.scenarios.get(confirmedId)!;
     appendExperiment({
-      experiment_id: `EXP-${Date.now()}-bs`,
+      experiment_id: makeExperimentId({
+        kind: "blind_spot",
+        scenario_id: confirmedId,
+        seed: rec.scenario.seed,
+        generation,
+      }),
       ts: new Date().toISOString(),
       kind: "blind_spot",
       scenario_id: confirmedId,
       seed: rec.scenario.seed,
-      versions: {
-        dataset_version: "synth-pop-1.2.0",
-        attack_version: "genome-1.1.0",
-        detector_version: "risk-engine-1.0.0",
-        defense_version: "none",
-      },
+      versions: versionStamp(state.mode, "none"),
       metrics: { attack_success_rate_search_seed: rec.outcome?.attack_success_rate ?? 0 },
       decision: "BLIND_SPOT_CONFIRMED",
       notes: `evasion reproduced across 4 fresh seeds after ${generation} generations`,

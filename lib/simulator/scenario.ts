@@ -41,21 +41,28 @@ export function compileScenario(
     return [s, Math.min(23, s + int(rng, 10, 14))] as [number, number];
   })();
 
-  const mkTx = (cid: string, ageDays: number, amount: number, tsMs: number, deviceId: string): Transaction => ({
-    tx_id: nextId("A"),
-    ts_ms: Math.round(tsMs),
-    amount: Math.round(amount * 100) / 100,
-    customer_id: cid,
-    account_age_days: ageDays,
-    merchant_id: target.id,
-    mcc: target.mcc,
-    device_id: deviceId,
-    channel: ["online_retail", "digital_goods", "travel"].includes(target.mcc) ? "ecommerce" : "card_present",
-    country: genome.device.geo_jump_km > 800 ? "ABROAD" : "US",
-    scenario_id,
-    kind: "attack",
-    ground_truth: "fraud",
-  });
+  const mkTx = (cid: string, ageDays: number, amount: number, tsMs: number, deviceId: string): Transaction => {
+    const timestamp = Math.round(tsMs);
+    return {
+      tx_id: nextId("A"),
+      ts_ms: timestamp,
+      amount: Math.round(amount * 100) / 100,
+      currency: "USD",
+      customer_id: cid,
+      account_id: `A-${cid}`,
+      token_id: `T-${cid}`,
+      session_id: `S-${cid}-${Math.floor(timestamp / DAY_MS)}`,
+      account_age_days: ageDays,
+      merchant_id: target.id,
+      mcc: target.mcc,
+      device_id: deviceId,
+      channel: ["online_retail", "digital_goods", "travel"].includes(target.mcc) ? "ecommerce" : "card_present",
+      country: genome.device.geo_jump_km > 800 ? "ABROAD" : "US",
+      scenario_id,
+      kind: "attack",
+      ground_truth: "fraud",
+    };
+  };
 
   /** Warmup history so behavioural features (amt_z, new_device) are meaningful. */
   const warmupFor = (cid: string, ageDays: number, includeTargetMerchant: boolean): string => {
@@ -71,11 +78,16 @@ export function compileScenario(
       const daysAgo = uniform(wrng, 1, Math.min(ageDays - 1, 60));
       const useTarget = includeTargetMerchant && i % 3 === 0;
       const m = useTarget ? target : world.merchants[Math.floor(wrng() * world.merchants.length)];
+      const timestamp = Math.round(epochStartMs - daysAgo * DAY_MS);
       txs.push({
         tx_id: nextId("W"),
-        ts_ms: Math.round(epochStartMs - daysAgo * DAY_MS),
+        ts_ms: timestamp,
         amount: Math.round(uniform(wrng, 8, Math.max(12, genome.amount.base * 0.85)) * 100) / 100,
+        currency: "USD",
         customer_id: cid,
+        account_id: `A-${cid}`,
+        token_id: `T-${cid}`,
+        session_id: `S-${cid}-${Math.floor(timestamp / DAY_MS)}`,
         account_age_days: ageDays,
         merchant_id: m.id,
         mcc: m.mcc,

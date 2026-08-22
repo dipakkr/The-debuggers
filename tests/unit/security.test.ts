@@ -114,6 +114,7 @@ describe("phase 4: security guards", () => {
       "dataset_version",
       "defense_version",
       "detector_version",
+      "reasoning_version",
     ]);
   });
 });
