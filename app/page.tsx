@@ -95,8 +95,8 @@ const FAMILY_SHORT: Record<string, string> = {
   mule_fanout: "MULE",
 };
 
-const pct = (x?: number | null) => (x == null ? "—" : (x * 100).toFixed(2) + "%");
-const num = (x?: number | null, d = 3) => (x == null ? "—" : x.toFixed(d));
+const pct = (x?: number | null) => (x == null ? "n/a" : (x * 100).toFixed(2) + "%");
+const num = (x?: number | null, d = 3) => (x == null ? "n/a" : x.toFixed(d));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Tab = "command" | "intel" | "evo" | "investigation" | "validation" | "audit";
@@ -219,6 +219,18 @@ export default function Page() {
 
   const hasBlindSpot = Boolean(snap.blindSpotScenarioId);
   const feed = snap.attempts.slice(-12);
+  const activeScenarioId = snap.blindSpotScenarioId ?? feed.at(-1)?.scenario_id ?? null;
+
+  const stages: [string, boolean][] = [
+    ["IDENTIFY", true],
+    ["GENERATE", snap.generation > 0],
+    ["ATTACK", snap.attempts.some((attempt) => attempt.generation > 0)],
+    ["EVADE", hasBlindSpot],
+    ["DISCOVER", hasBlindSpot],
+    ["DEFEND", Boolean(snap.defenseProposal)],
+    ["REPLAY", Boolean(snap.replayDiff)],
+    ["MEASURE", Boolean(snap.duringAttack)],
+  ];
 
   const railSteps: [string, boolean][] = [
     ["THREAT INTELLIGENCE", true],
@@ -234,14 +246,37 @@ export default function Page() {
 
   return (
     <div className="app">
+      <section className="thesis" aria-labelledby="arena-thesis">
+        <div>
+          <p className="eyebrow">AI PAYMENT-SECURITY COMMAND CENTER</p>
+          <h1 id="arena-thesis">Generate tomorrow’s fraud today.</h1>
+          <p>Red evolves synthetic attacks. Blue proposes defenses. The Referee owns truth.</p>
+        </div>
+        <div className="arena-status" aria-live="polite">
+          <span className="synthetic-banner">SYNTHETIC PAYMENT ENVIRONMENT</span>
+          <span>{busy ? "ARENA RUNNING" : `GENERATION ${snap.generation}`}</span>
+          <span>{activeScenarioId ? `ACTIVE ${activeScenarioId}` : "BASELINE READY"}</span>
+        </div>
+      </section>
+
+      <ol className="stage-rail" aria-label="Arena stages">
+        {stages.map(([stage, complete]) => (
+          <li key={stage} className={complete ? "complete" : ""}>
+            {stage}
+          </li>
+        ))}
+      </ol>
+
       <header className="top">
         <div className="logo">
           ADVERSARIAL <span className="r">FRAUD</span> <span className="b">ARENA</span>
         </div>
-        <div className="subtitle">generate tomorrow&apos;s fraud today · synthetic only · referee-scored</div>
+        <div className="subtitle">Red AI vs Blue AI vs deterministic Referee</div>
         <div className="spacer" />
         <span className={"mode-badge" + (mode === "live" ? " live" : "")}>{mode.toUpperCase()} MODE</span>
+        <label className="sr-only" htmlFor="arena-mode">Arena mode</label>
         <select
+          id="arena-mode"
           value={mode}
           onChange={(e) => setMode(e.target.value as "demo" | "live")}
           style={{ background: "var(--panel2)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, padding: "7px 8px" }}
@@ -263,7 +298,7 @@ export default function Page() {
         </button>
       </header>
 
-      <nav className="tabs">
+      <nav className="tabs" aria-label="Arena views">
         {(
           [
             ["command", "COMMAND CENTER"],
@@ -287,7 +322,7 @@ export default function Page() {
               <h3>Red Team · attack evolution</h3>
               {feed.length === 0 && <div className="empty-note">press RUN RED TEAM</div>}
               {feed.map((a) => (
-                <div key={a.scenario_id} className={"feed-item" + (a.verdict === "evaded" ? " evaded" : "") + (a.verdict === "invalid" ? " invalid" : "")}>
+                <div key={a.scenario_id} className={"feed-item" + (a.verdict === "evaded" ? " evaded" : "") + (a.verdict === "invalid" ? " invalid" : "") + (a.scenario_id === activeScenarioId ? " active" : "")}>
                   <span className="fam-chip">{FAMILY_SHORT[a.family] ?? a.family}</span>
                   <span>{a.scenario_id}</span>
                   <span style={{ color: "var(--dim)" }}>g{a.generation}</span>
@@ -311,7 +346,7 @@ export default function Page() {
                   {i < railSteps.length - 1 && <div className="rail-line" />}
                 </div>
               ))}
-              {hasBlindSpot && <div className="hero-alert">BLIND SPOT DISCOVERED · {snap.blindSpotScenarioId}</div>}
+              {hasBlindSpot && <div className="hero-alert" role="alert">BLIND SPOT DISCOVERED: {snap.blindSpotScenarioId}</div>}
               {!hasBlindSpot && (
                 <div className="empty-note">
                   generation {snap.generation} · red adapts to every referee outcome until it finds what the detector cannot see
@@ -410,7 +445,7 @@ export default function Page() {
             </table>
           </div>
           <div className="footer-note">
-            All identities, merchants and transactions are synthetic. Attack knowledge is bounded behavioural parameters — no real payment data exists in this system.
+            All identities, merchants, and transactions are synthetic. Bounded behavioral parameters contain each attack. The system has no real payment data.
           </div>
         </>
       )}
@@ -441,7 +476,7 @@ export default function Page() {
                   <td className="plain">{f.how_genai_changes_it}</td>
                   <td className="plain">{f.observable_signals.join(", ")}</td>
                   <td className="plain">{f.potential_blind_spot}</td>
-                  <td>{f.selected ? "✓ simulated" : "—"}</td>
+                  <td>{f.selected ? "simulated" : "not selected"}</td>
                 </tr>
               ))}
             </tbody>
@@ -454,7 +489,7 @@ export default function Page() {
       {tab === "investigation" && (
         <div className="panel">
           <h3>Blue Investigation · why the detector missed it</h3>
-          {!snap.defenseProposal && <div className="empty-note">no investigation yet — confirm a blind spot, then press INVESTIGATE</div>}
+          {!snap.defenseProposal && <div className="empty-note">Confirm a blind spot, then select INVESTIGATE.</div>}
           {snap.defenseProposal && (
             <>
               <div className="hypo">{snap.defenseProposal.failure_hypothesis}</div>
@@ -495,7 +530,7 @@ export default function Page() {
           {snap.defenseAccepted === null && <div className="empty-note">nothing validated yet</div>}
           {snap.defenseAccepted !== null && (
             <>
-              <div className="hero-alert" style={{ borderColor: snap.defenseAccepted ? "#2a5a3c" : undefined, color: snap.defenseAccepted ? "var(--green)" : "var(--red)" }}>
+              <div className={"hero-alert " + (snap.defenseAccepted ? "accepted" : "rejected")} role="status">
                 DEFENSE {snap.defenseAccepted ? "ACCEPTED" : "REJECTED"}
               </div>
               {snap.gateReasons.length > 0 && (
@@ -563,8 +598,8 @@ export default function Page() {
                 <tr key={i}>
                   <td>{new Date(e.ts).toLocaleTimeString()}</td>
                   <td>{e.kind}</td>
-                  <td>{e.scenario_id ?? "—"}</td>
-                  <td>{e.seed ?? "—"}</td>
+                  <td>{e.scenario_id ?? "n/a"}</td>
+                  <td>{e.seed ?? "n/a"}</td>
                   <td>{e.decision ?? ""}</td>
                   <td>{e.metrics ? JSON.stringify(e.metrics).slice(0, 90) : e.notes ?? ""}</td>
                 </tr>
@@ -617,11 +652,19 @@ function EvolutionTab({
   }
 
   const sel = selectedId ? byId.get(selectedId) : null;
+  const active = snap.blindSpotScenarioId
+    ? byId.get(snap.blindSpotScenarioId)
+    : snap.attempts.at(-1);
 
   return (
     <div className="evo-wrap">
       <div className="panel">
         <h3>Fraud Evolution Tree · lineage of every attack</h3>
+        <div className="evo-summary" aria-live="polite">
+          <strong>ACTIVE MUTATION</strong>
+          <span>{active?.scenario_id ?? "No mutation"}</span>
+          <span>{active ? `${FAMILY_SHORT[active.family] ?? active.family} / ${active.verdict.toUpperCase()}` : "Run Red Team"}</span>
+        </div>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
           {edges.map((e, i) => (
             <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke={e.hot ? "#ff5c66" : "#232c3d"} strokeWidth={e.hot ? 2 : 1.5} />
@@ -631,13 +674,23 @@ function EvolutionTab({
             const fill =
               a.verdict === "evaded" ? "#ff5c66" : a.verdict === "invalid" ? "#333c48" : a.verdict === "caught" ? "#2a3345" : "#d29922";
             return (
-              <g key={a.scenario_id} className="tree-node" onClick={() => onSelect(a.scenario_id)}>
+              <g
+                key={a.scenario_id}
+                className="tree-node"
+                onClick={() => onSelect(a.scenario_id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") onSelect(a.scenario_id);
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`${a.scenario_id}, generation ${a.generation}, ${a.verdict}`}
+              >
                 {a.scenario_id === snap.blindSpotScenarioId && (
                   <circle cx={p.x} cy={p.y} r={20} fill="none" stroke="#ff5c66" strokeWidth={1.5} strokeDasharray="4 3">
                     <animate attributeName="stroke-opacity" values="1;0.15;1" dur="1.4s" repeatCount="indefinite" />
                   </circle>
                 )}
-                <circle cx={p.x} cy={p.y} r={13} fill={fill} stroke={selectedId === a.scenario_id ? "#fff" : "#0a0d13"} strokeWidth={2} />
+                <circle cx={p.x} cy={p.y} r={13} fill={fill} stroke={selectedId === a.scenario_id || active?.scenario_id === a.scenario_id ? "#e8edf5" : "#0a0d13"} strokeWidth={2} />
                 <text x={p.x} y={p.y + 30} textAnchor="middle" fontSize={9} fill="#7a8699" fontFamily="monospace">
                   {a.scenario_id}
                 </text>
