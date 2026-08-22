@@ -53,8 +53,7 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
   };
 }
 
-// Global singleton (per server process). Next.js dev may reload modules;
-// tests construct their own via freshState.
+// ponytail: one process-global demo session; use a shared session store before multi-replica deployment.
 const g = globalThis as unknown as { __arenaState?: ArenaState };
 export function arena(): ArenaState {
   if (!g.__arenaState) g.__arenaState = freshState("demo");

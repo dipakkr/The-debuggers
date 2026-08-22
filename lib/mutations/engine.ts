@@ -6,7 +6,10 @@ import {
 } from "@/lib/contracts/genome";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { DetectorWeights } from "@/lib/fraud/detector";
+import {
+  DetectorWeightsSchema,
+  type DetectorWeights,
+} from "@/lib/fraud/detector";
 import { arena, ArenaState, StoredScenario } from "@/lib/state";
 import { refereeEvaluate, SEEDS, ScenarioOutcome } from "@/lib/referee/referee";
 import { computeFitness } from "@/lib/referee/fitness";
@@ -23,9 +26,11 @@ function nextScenarioId(): string {
 let modelCache: DetectorWeights | null = null;
 export function loadModel(): DetectorWeights {
   if (!modelCache) {
-    modelCache = JSON.parse(
-      readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
-    ) as DetectorWeights;
+    modelCache = DetectorWeightsSchema.parse(
+      JSON.parse(
+        readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
+      )
+    );
   }
   return modelCache;
 }

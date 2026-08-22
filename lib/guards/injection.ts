@@ -14,6 +14,8 @@ const INJECTION_PATTERNS: [RegExp, string][] = [
   [/<\/?(system|assistant|user|data)>/gi, "[FILTERED:tag]"],
 ];
 
+export const MAX_UNTRUSTED_TEXT = 2000;
+
 export function scrubUntrusted(text: string): string {
   let out = text ?? "";
   for (const [re, replacement] of INJECTION_PATTERNS) out = out.replace(re, replacement);
@@ -40,6 +42,9 @@ export function rejectRealCredentials(text: string): void {
 }
 
 export function guardUntrustedText(text: string): string {
+  if (new TextEncoder().encode(text).byteLength > MAX_UNTRUSTED_TEXT) {
+    throw new Error("untrusted text is too large");
+  }
   rejectRealCredentials(text);
   return scrubUntrusted(text);
 }

@@ -18,10 +18,21 @@ export type Completion = (
 ) => Promise<LlmResult>;
 
 function cfg() {
-  const base = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const base = assertSafeProviderUrl(
+    process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1"
+  ).href.replace(/\/$/, "");
   const key = process.env.OPENAI_API_KEY;
   const model = process.env.ARENA_MODEL ?? "gpt-4o-mini";
   return { base, key, model };
+}
+
+export function assertSafeProviderUrl(value: string): URL {
+  const url = new URL(value);
+  const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost";
+  if (url.protocol !== "https:" && !(loopback && url.protocol === "http:")) {
+    throw new Error("provider URL must use HTTPS");
+  }
+  return url;
 }
 
 export function liveModeAvailable(): boolean {
