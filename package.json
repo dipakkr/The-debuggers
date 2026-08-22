@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "test": "vitest run",
-    "docx": "tsx scripts/make-docx.ts",
+    "docx": "tsx scripts/make-docx.mts",
     "selfcheck": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
