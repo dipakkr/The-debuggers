@@ -7,3 +7,6 @@ next-env.d.ts
 data/ledger/*.jsonl
 __pycache__/
 .DS_Store
+.worktrees/
+CLAUDE_RESUME.md
+.codex-checkpoint.md
