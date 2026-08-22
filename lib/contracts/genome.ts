@@ -179,9 +179,11 @@ export interface ExperimentRow {
 export interface MetricsResult {
   fraud_recall: number;
   precision: number;
+  f1: number;
   fpr: number;
+  fnr: number;
   review_rate: number;
-  pr_auc: number;
+  average_precision: number;
   p50_latency_ms: number;
   p95_latency_ms: number;
   n_legit: number;

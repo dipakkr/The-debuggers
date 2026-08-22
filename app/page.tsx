@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 interface MetricsRow {
   fraud_recall: number;
   precision: number;
+  f1: number;
   fpr: number;
+  fnr: number;
   review_rate: number;
-  pr_auc: number;
+  average_precision: number;
   p50_latency_ms: number;
   p95_latency_ms: number;
   n_legit: number;
@@ -393,10 +395,10 @@ export default function Page() {
                   <td>{pct(snap.afterDefense?.precision)}</td>
                 </tr>
                 <tr>
-                  <td>PR-AUC</td>
-                  <td>{num(snap.baseline?.pr_auc)}</td>
-                  <td>{num(snap.duringAttack?.pr_auc)}</td>
-                  <td>{num(snap.afterDefense?.pr_auc)}</td>
+                  <td>average precision</td>
+                  <td>{num(snap.baseline?.average_precision)}</td>
+                  <td>{num(snap.duringAttack?.average_precision)}</td>
+                  <td>{num(snap.afterDefense?.average_precision)}</td>
                 </tr>
                 <tr>
                   <td>p95 latency / tx</td>
