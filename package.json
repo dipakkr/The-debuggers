@@ -1,0 +1,38 @@
+{
+  "name": "adversarial-fraud-arena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI red team evolves synthetic payment fraud against a live fraud defense. Deterministic referee proves every result.",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "train": "tsx scripts/train.ts",
+    "bench": "tsx scripts/bench.ts",
+    "demo": "npm run build && npm run start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "test": "vitest run",
+    "docx": "tsx scripts/make-docx.ts",
+    "selfcheck": "npm run lint && npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "docx": "^9.0.2",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.15",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

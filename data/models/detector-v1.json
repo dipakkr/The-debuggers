@@ -1,0 +1,32 @@
+{
+  "version": "risk-engine-1.0.0",
+  "feature_names": [
+    "amt_z",
+    "vel_1h",
+    "vel_24h",
+    "hour_outside_pref",
+    "new_device",
+    "new_merchant",
+    "probe_count_24h"
+  ],
+  "w": [
+    0.46832265910508597,
+    0.8406916033372361,
+    0.771105845736973,
+    5.104609420743511,
+    6.996122630224086,
+    -1.3768170616698796,
+    0.02420476343266526
+  ],
+  "b": -5.998527134463661,
+  "threshold_block": 0.3874,
+  "threshold_review": 0.1562,
+  "trained_on": {
+    "world_seed": 20260822,
+    "train_seed": 10101,
+    "days": 30,
+    "rows": 25084,
+    "train_recall_at_threshold": 0.8414035087719298,
+    "train_fpr_at_threshold": 0.02615212884707383
+  }
+}
