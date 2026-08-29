@@ -51,9 +51,11 @@ either accepts or rejects against fresh-seed held-out attacks.
 ## The headline result
 
 The detector reaches **ROC-AUC 0.980** and **F1 58.5%** at **0.19% false positives** on the
-attacks it was trained to catch. The red team then evolves a variant that the same
-detector misses at *every* threshold in its range — and the Blue Team's graph feature
-recovers it for **+0.05 points** of false positives, a paired result at **p < 0.001**.
+attacks it was trained to catch. The red team then evolves a variant against which that
+same detector cannot reach a usable operating point at *any* threshold — its F1 stays
+under 15% across the whole range, and buying recall means multiplying false positives.
+The Blue Team's graph feature recovers it for **+0.05 points** of false positives, a
+paired result at **p < 0.001**.
 
 That gap is the entire argument. A novel attack is not a calibration problem you can
 threshold your way out of; it is a missing-feature problem, and you only learn which
