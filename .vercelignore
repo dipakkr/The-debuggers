@@ -1,6 +1,14 @@
-.env.local
-.env*.local
+# Never upload local secrets. `vercel deploy` uploads the working tree, and
+# Next.js loads .env at runtime, so an un-ignored .env silently ships a real
+# key into the deployment. Environment variables belong in `vercel env add`.
+.env
+.env.*
+!.env.example
+
 .git
 node_modules
 tests
 docs
+scripts
+data/ledger
+.vercel

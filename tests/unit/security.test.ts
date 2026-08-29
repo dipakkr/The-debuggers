@@ -197,3 +197,27 @@ describe("live-mode transparency", () => {
     expect(engine).toContain("untrusted DATA");
   });
 });
+
+describe("secrets never leave the machine", () => {
+  it("keeps .env out of git", () => {
+    const gitignore = readFileSync(".gitignore", "utf8");
+    expect(gitignore).toMatch(/^\.env\*?$/m);
+  });
+
+  it("keeps .env out of Vercel deploy uploads", () => {
+    // `vercel deploy` uploads the working tree and Next.js loads .env at
+    // runtime, so an un-ignored .env silently ships a real key into the
+    // deployment. This happened once; the test exists so it cannot again.
+    const vercelignore = readFileSync(".vercelignore", "utf8");
+    const lines = vercelignore.split("\n").map((l) => l.trim());
+    expect(lines).toContain(".env");
+    expect(lines).toContain(".env.*");
+  });
+
+  it("never reads a provider key into anything client-facing", () => {
+    const serialize = readFileSync("lib/serialize.ts", "utf8");
+    expect(serialize).not.toContain("OPENAI_API_KEY");
+    // only the BOOLEAN presence of a key may cross to the client
+    expect(serialize).toContain("liveModeAvailable()");
+  });
+});
