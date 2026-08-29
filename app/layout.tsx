@@ -18,7 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      {/* Browser extensions commonly inject attributes onto <body> before React
+          hydrates (ColorZilla's cz-shortcut-listen, password managers, and so
+          on), which React reports as a hydration mismatch. Scoping the
+          suppression to <body> silences that without hiding a genuine mismatch
+          anywhere inside the app. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

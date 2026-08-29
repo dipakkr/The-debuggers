@@ -143,6 +143,16 @@ interface ThreatFamily {
 /* ------------------------------------------------------------------ utils */
 
 const pct = (x?: number | null, d = 2) => (x == null ? "—" : `${(x * 100).toFixed(d)}%`);
+
+/** Scoring latency is sub-microsecond; a fixed unit rounds it to a misleading
+ *  zero, so pick the unit that actually carries the number. */
+const latency = (ms?: number | null) => {
+  if (ms == null) return "—";
+  const ns = ms * 1e6;
+  if (ns < 1000) return `${Math.round(ns)} ns`;
+  if (ns < 1e6) return `${(ns / 1000).toFixed(ns < 10_000 ? 2 : 0)} µs`;
+  return `${ms.toFixed(2)} ms`;
+};
 const pts = (x: number, d = 2) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(d)} pts`;
 
 const FAMILY_LABEL: Record<string, string> = {
@@ -531,7 +541,7 @@ function CommandCentre({
             <dl className="kv">
               <dt>Block threshold</dt><dd>{snap.detector.threshold_block}</dd>
               <dt>Review threshold</dt><dd>{snap.detector.threshold_review}</dd>
-              <dt>Scoring p95</dt><dd>{base ? `${(base.p95_latency_ms * 1000).toFixed(0)} µs` : "—"}</dd>
+              <dt>Scoring p95</dt><dd>{latency(base?.p95_latency_ms)}</dd>
               <dt>Legit evaluated</dt><dd>{base?.n_legit.toLocaleString() ?? "—"}</dd>
             </dl>
           </div>
@@ -596,12 +606,11 @@ function ThreatIntel({ intel, families }: { intel: ThreatIntelProps["intel"]; fa
           </div>
           <div className="threats">
             {list.map((f) => (
-              <article key={f.id} className={`threat ${f.simulated ? "sim" : ""}`}>
+              <article key={f.id} className="threat">
                 <div className="meta">
                   <span className={`tag ${f.simulated ? "block" : "muted"}`}>
                     {f.simulated ? "SIMULATED" : "RESEARCH"}
                   </span>
-                  {families.includes(f.id) && <span className="tag info">GENOME</span>}
                 </div>
                 <h4>{f.name}</h4>
                 <dl>
@@ -760,7 +769,7 @@ function DetectionEngine({ snap }: { snap: Snapshot }) {
         <Kpi k="Average precision" v={pct(snap.baseline?.average_precision)} d="ranking quality" />
         <Kpi k="Block threshold" v={String(snap.detector.threshold_block)} d={`review at ${snap.detector.threshold_review}`} />
         <Kpi k="Calibrated for" v={pct(Number(cal.deploy_prevalence ?? 0), 2)} d="fraud prevalence" />
-        <Kpi k="Scoring p95" v={snap.baseline ? `${(snap.baseline.p95_latency_ms * 1000).toFixed(0)} µs` : "—"} d="per transaction" />
+        <Kpi k="Scoring p95" v={latency(snap.baseline?.p95_latency_ms)} d="per transaction" />
       </section>
 
       <div className="grid two">
