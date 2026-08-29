@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { sessionArena } from "@/lib/session";
-import { resetArena } from "@/lib/mutations/engine";
+import { rehydrate, sessionArena } from "@/lib/session";
 import { serializeState } from "@/lib/serialize";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function GET() {
-  const { state } = await sessionArena();
-  if (!state.baselineRun) resetArena(state);
+  const { state, progress } = await sessionArena();
+  await rehydrate(state, progress);
   return NextResponse.json(serializeState(state));
 }
