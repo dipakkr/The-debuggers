@@ -61,38 +61,58 @@ That gap is the entire argument. A novel attack is not a calibration problem you
 threshold your way out of; it is a missing-feature problem, and you only learn which
 feature is missing by generating the attack first.
 
-## Quick start
+## Run it locally
 
-Node.js 22 or newer.
+Node.js 22 or newer. No API key, no database, no internet connection required —
+demo mode runs the entire loop on deterministic policies.
 
 ```bash
+git clone https://github.com/dipakkr/The-debuggers.git
+cd The-debuggers
 npm ci
-npm run evidence     # reproduce the committed experiment
-npm run selfcheck    # lint, typecheck, 70 tests, production build
 npm run dev
 ```
 
-Open `http://localhost:3000`, then: **Run red team** (twice) → **Investigate** →
-**Validate at the gate**. The whole loop takes about a minute.
+Open **http://localhost:3000**, then click through the loop:
+
+1. **Run red team** — twice. Generation 2 confirms a blind spot (`AF-1013`).
+2. **Investigate** — the Blue Team reads the false-negative evidence.
+3. **Validate at the gate** — the Referee accepts or rejects.
+
+The whole loop takes about a minute. Port 3000 already in use? `next dev`
+honours `PORT`, so `PORT=3411 npm run dev` works.
+
+### Reproduce the numbers yourself
+
+```bash
+npm run evidence     # re-runs the whole experiment -> data/evidence/latest.json
+npm run docs         # re-renders README + docs/evaluation.md from that evidence
+npm run selfcheck    # lint, typecheck, 75 tests, production build
+```
+
+`npm run evidence` is deterministic: it regenerates `latest.json` with the same
+blind spot, the same metrics and the same replay diff every time. CI fails if
+the committed docs do not match a fresh render of the committed evidence.
+
+Other scripts: `npm run train` retrains the detector and rewrites
+`data/models/detector-v1.json`; `npm run bench` regenerates the throughput
+benchmark; `npm run docx` rebuilds the solution walkthrough.
+
+### Optional: live mode
+
+Demo mode swaps in a deterministic expert policy for the reasoning layer.
+To run the LLM path instead:
+
+```bash
+OPENAI_API_KEY=<key> OPENAI_BASE_URL=https://api.openai.com/v1 ARENA_MODEL=<model> npm run dev
+```
+
+The simulator, detector, Referee, gate, metrics and replay are real code in
+both modes. Never commit a real API key.
 
 The same loop runs on the deployed prototype and reproduces the committed
 evidence exactly: blind spot `AF-1013`, recall-with-review 44.44% → 70.00%,
 FPR 0.187% → 0.237%, 23 transactions newly caught and 0 newly missed.
-
-## Demo mode and live mode
-
-Demo mode needs no API key and no internet. The simulator, detector, mutation search,
-Referee, Defense Gate, metrics and replay are **always real code** — only the reasoning
-layer changes.
-
-```bash
-OPENAI_API_KEY=<key> OPENAI_BASE_URL=https://api.openai.com/v1 ARENA_MODEL=<model> npm start
-```
-
-In live mode an LLM performs threat interpretation, mutation strategy, failure
-investigation and defense hypothesis, each behind a strict output schema with one
-repair attempt and a deterministic fallback. It can never assert a metric, a label or
-a verdict. Never commit a real API key.
 
 ## Architecture
 

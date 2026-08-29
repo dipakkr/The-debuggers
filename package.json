@@ -4,7 +4,7 @@
   "private": true,
   "description": "AI red team evolves synthetic payment fraud against a live fraud defense. Deterministic referee proves every result.",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "train": "tsx scripts/train.ts",
