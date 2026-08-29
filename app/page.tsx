@@ -184,6 +184,7 @@ export default function Page() {
   const [selected, setSelected] = useState<string | null>(null);
   const [intel, setIntel] = useState<{ families: ThreatFamily[]; assessment: { headline: string; selected_ids: string[]; rationale: string }; source: string } | null>(null);
   const [ledger, setLedger] = useState<Record<string, unknown>[]>([]);
+  const [ledgerBacking, setLedgerBacking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -198,7 +199,13 @@ export default function Page() {
 
   useEffect(() => {
     if (view === "audit") {
-      void fetch("/api/experiments").then((r) => r.json()).then((d) => setLedger(d.experiments ?? [])).catch(() => undefined);
+      void fetch("/api/experiments")
+        .then((r) => r.json())
+        .then((d) => {
+          setLedger(d.experiments ?? []);
+          setLedgerBacking(d.backing ?? null);
+        })
+        .catch(() => undefined);
     }
   }, [view, snap?.generation]);
 
@@ -347,7 +354,7 @@ export default function Page() {
           ) : view === "gate" ? (
             <DefenseGate snap={snap} gate={gate} />
           ) : (
-            <Audit snap={snap} ledger={ledger} />
+            <Audit snap={snap} ledger={ledger} backing={ledgerBacking} />
           )}
         </main>
       </div>
@@ -1058,7 +1065,15 @@ function ReplayCard({ title, hint, rows, note }: { title: string; hint: string; 
 
 /* ------------------------------------------------------------------ audit */
 
-function Audit({ snap, ledger }: { snap: Snapshot; ledger: Record<string, unknown>[] }) {
+const LEDGER_BACKING_NOTE: Record<string, string> = {
+  repo: "Appended to data/ledger/experiments.jsonl in the working tree — durable across restarts on this host.",
+  tmp: "This host's bundle directory is read-only, so records are appended to the instance temp directory. They survive within an instance but not across a redeploy — a production deployment needs a real append-only store.",
+  memory: "No writable filesystem on this host; records are held in memory for this instance only.",
+};
+
+function Audit({
+  snap, ledger, backing,
+}: { snap: Snapshot; ledger: Record<string, unknown>[]; backing: string | null }) {
   return (
     <>
       <div className="page-head">
@@ -1083,7 +1098,11 @@ function Audit({ snap, ledger }: { snap: Snapshot; ledger: Record<string, unknow
       </div>
 
       <div className="card">
-        <header><h3>Referee ledger</h3><span className="hint">{ledger.length} records</span></header>
+        <header>
+          <h3>Referee ledger</h3>
+          <span className="hint">{ledger.length} records</span>
+          {backing && <span className={`tag ${backing === "repo" ? "allow" : "muted"}`}>{backing.toUpperCase()}</span>}
+        </header>
         <div className="body tight scroll">
           {ledger.length === 0 ? (
             <div className="empty">No experiments recorded in this session yet.</div>
@@ -1105,6 +1124,11 @@ function Audit({ snap, ledger }: { snap: Snapshot; ledger: Record<string, unknow
             </table>
           )}
         </div>
+        {backing && (
+          <div className="body" style={{ borderTop: "1px solid var(--line)" }}>
+            <p className="note">{LEDGER_BACKING_NOTE[backing]}</p>
+          </div>
+        )}
       </div>
     </>
   );
