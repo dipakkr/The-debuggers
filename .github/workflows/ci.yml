@@ -15,3 +15,27 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run selfcheck
+
+  # The measured sections of README.md and docs/evaluation.md are generated
+  # from data/evidence/*.json. If a number is edited by hand, or evidence is
+  # regenerated without re-rendering, this job fails — which is how a claim
+  # stops being able to drift away from the evidence supporting it.
+  docs-in-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run docs
+      - name: fail if generated docs are stale
+        run: |
+          if ! git diff --quiet -- README.md docs/evaluation.md; then
+            echo "::error::Generated docs are out of sync with data/evidence/. Run 'npm run docs' and commit."
+            git diff --stat -- README.md docs/evaluation.md
+            git diff -- README.md docs/evaluation.md | head -80
+            exit 1
+          fi
+          echo "generated docs match the committed evidence"

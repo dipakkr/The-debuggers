@@ -1,158 +1,135 @@
-# Experimental Methodology
+# Experimental methodology
 
-## Objective
+The Referee is the only component permitted to produce a number. Neither the Red Team
+nor the Blue Team may assert a metric, a label, a fitness value or a verdict; they
+propose, and deterministic code measures.
 
-The experiment tests one claim: an adaptive synthetic attacker can expose a detector blind spot before production.
+## Four separated environments
 
-It then tests a second claim: a bounded defense can improve held-out detection within an FPR budget.
+| Environment | Seed | Purpose | Who may see it |
+|---|---|---|---|
+| Training | `10101` | Fit the baseline on loud attack templates | Nobody at run time |
+| Red search | `20202` | Adaptive attack exploration | Red Team |
+| Blue development | `30303` | Blind-spot confirmation, failure evidence | Blue Team |
+| Final test | `40404` | Gate evaluation, survival, replay | Neither — Referee only |
 
-## Environment isolation
+The Blue Team forms its hypothesis on development evidence and is graded on the final
+test. Gate seeds are constants, not derived from wall-clock time, so a verdict cannot
+depend on when it was run.
 
-The Referee owns four fixed seeds.
+## Burn-in and evaluation window
 
-| Environment | Seed | Purpose |
-|---|---:|---|
-| Training | `10101` | Fit the baseline on known legitimate and fraud patterns |
-| Red search | `20202` | Evolve attacks against the baseline |
-| Blue development | `30303` | Build the failure and defense hypothesis |
-| Final test | `40404` | Test fresh descendants and legitimate regression |
+Streams start cold. Behavioural features — amount z-score, velocity, device novelty,
+cadence regularity — are meaningless until a customer has history. The first 16 days of
+the 30-day backdrop are burn-in and are excluded from every metric denominator, as are
+attacker warm-up rows, which exist to give features context and are labelled legitimate.
 
-The Blue Team never receives the final-test outcomes before it creates the proposal.
+## Choosing the operating point
 
-## Baseline
+This is the single most consequential methodological decision in the repository.
 
-The baseline combines two deterministic rules with a trained logistic regression model.
+A fraud detector produces a score; a *threshold* turns that score into a decision. The
+original calibration set the block threshold at the 98th percentile of legitimate scores.
+That pins the false-positive rate near 2% **by construction**, and precision is bounded by
+prevalence:
 
-The model uses amount, velocity, time, device, merchant, probe, and account-age signals.
+```
+precision(π) = π·TPR / (π·TPR + (1 − π)·FPR)
+```
 
-The baseline must catch known card-testing and mule-burst templates. The T2 and T3 tests enforce this requirement.
+At π ≈ 0.003 and FPR = 0.02, precision cannot exceed roughly 7% even with perfect recall.
+The reported F1 then describes the threshold, not the model — and indeed the model's
+ROC-AUC was 0.99 while its reported F1 was 12.8%.
 
-## Adaptive search
+The threshold is now **swept for maximum F1 at deployment prevalence**, subject to a hard
+false-positive ceiling. Two details matter:
 
-The Red Team starts from known templates. It creates bounded child genomes with outcome-conditioned mutations.
+1. **Prevalence adjustment is analytic, not by subsampling.** Throwing away positives to
+   reach a 0.3% base rate leaves about 18 fraud rows and a very noisy sweep. TPR and FPR
+   are prevalence-independent, so they are estimated on the full validation slice (452
+   fraud rows) and converted to precision with the formula above.
+2. **Two thresholds, two costs.** A decline is expensive and irreversible; an analyst
+   review is cheap. The block threshold is swept for F1; the review threshold is set at a
+   legitimate-score quantile so recall-with-review stays high without paying the precision
+   cost on declines.
 
-The engine keeps the strongest valid children. It stores each parent identifier, child identifier, result, and fitness value.
+## Two recall definitions, reported together
 
-Generation N receives the results from Generation N-1. The lineage and memory tests enforce this dependency.
+- `fraud_recall` counts only **block** — an automatic decline.
+- `recall_with_review` counts **block or review** — a decline or an analyst hold.
 
-## Fraud Genome validity
+Both are always reported. Precision, F1 and FPR are computed **only** on the strict block
+definition, so a defense cannot manufacture recall by pushing traffic into the review
+queue — and the gate budgets the extra queue load on top of that.
 
-The `GenomeSchema` defines every permitted attack dimension. The schema rejects unknown fields and out-of-range values.
+## Declines require corroboration
 
-The simulator accepts only validated genomes. It never executes text or code from an LLM.
+An amount or odd-hour outlier on a familiar device, with no velocity, probe, structuring
+or graph support, is held for an analyst rather than refused. A wrongly declined genuine
+high-value purchase is the most expensive false positive a network can make. Note that
+`escalation_score` is derived from the amount itself and therefore cannot corroborate an
+amount anomaly — that would be the same evidence counted twice.
 
 ## Novelty
 
-The Referee computes a normalized behavioral distance from every baseline template.
+Novelty is Euclidean distance in normalised genome space, log-scaled on multiplicative
+dimensions, measured **against templates of the same family only**. Measuring against all
+templates would score a card-testing variant as novel merely for differing from a
+mule-fanout template. Threshold τ = 1.2.
 
-It applies logarithmic scaling to multiplicative dimensions. It also includes categorical differences.
+## Fitness
 
-The novelty score equals the minimum distance to any training template. A score above `1.2` passes the novelty threshold.
-
-Novel wording does not affect this score.
-
-## Attack fitness
-
-The Referee computes this objective:
-
-```text
-fitness = evasion + novelty_bonus - realism_penalties
+```
+F = evasion + novelty_bonus − realism_penalties
 ```
 
-Evasion equals the fraction of attack rows that the detector allows.
-
-The novelty bonus equals `0.25 * min(1.2, novelty_score / 1.2)`.
-
-The Referee subtracts a `0.5` penalty for machine-speed probing below 20 seconds.
-
-The Referee subtracts a `0.5` penalty for a card drain value above 6,000 synthetic currency units.
-
-The target is strong evasion among valid and plausible synthetic behavior.
+Computed exclusively by deterministic code from Referee outcomes. The Red Team may
+optimise toward it; it may never report it. Penalties fire on machine-speed probing and
+implausible cash-out sizes, so the search cannot win by proposing behaviour no real
+attacker could execute.
 
 ## Blind-spot confirmation
 
-A search result cannot declare itself a blind spot. The Referee recompiles it with four fresh seeds.
+A candidate that evades on its search seed is not yet a blind spot — it may be seed luck.
+The Referee recompiles the same genome under four fresh seeds on a different legitimate
+pool and requires the median evasion to hold. Only then is the Blue Team allowed to see it.
 
-The result must retain a median attack-success rate of at least `0.34`. It must also pass novelty and validity checks.
+## Acceptance budgets
 
-The confirmation stage limits seed-specific discoveries.
+| Check | Budget | Why |
+|---|---|---|
+| Threat recall gain | ≥ +5 pts | The change must do something material |
+| False-positive increase, absolute | ≤ +0.25 pts | Hard ceiling on wrongly declined payments |
+| False-positive increase, relative | ≤ +100% | A flat allowance sized for a 2.8% FPR would wave through a five-fold increase at 0.19% |
+| Extra review-queue load | ≤ +0.50 pts | Recall counting holds must not be bought with analyst load |
+| Fresh descendants improved | ≥ 80% | The fix must generalise across seed variation, not fit one scenario |
 
-## Blue investigation
+## Significance
 
-The Blue Team receives the false negatives, feature medians, reason codes, genome, lineage, and aggregate metrics.
+Before and after score **the same transactions** — identical scenarios, identical seeds,
+identical legitimate pool. The comparison is therefore paired, and McNemar's test is the
+correct statistic; an unpaired two-proportion test would understate the evidence. The
+continuity-corrected chi-square is used once b + c ≥ 25 and an exact binomial tail below
+that. Recall is additionally reported with a 95% Wilson interval, which is preferred over
+the normal approximation because the fraud counts are small and the proportions sit near
+the ends of [0, 1].
 
-The output contract contains these fields:
+## Replay
 
-- Failure hypothesis
-- Supporting evidence
-- Candidate features
-- Recommended change
-- Bounded defense configuration
-- Expected tradeoff
-- Confidence
+Two replays are produced and reported separately:
 
-Blue cannot submit metrics, labels, or a verdict through this contract.
+- the **discovery scenario**, recompiled from its stored genome and stored seed — the
+  causal claim about the attack that was actually found;
+- **fresh-seed recompiles** of the same genome — a generalisation check.
 
-## Defense Gate
-
-The candidate defense adds bounded escalation, pattern, or graph weights. It can also adjust the decision threshold.
-
-The gate accepts a proposal only when all conditions pass:
-
-- Held-out threat recall improves by at least five percentage points.
-- The legitimate FPR increase stays within one percentage point.
-- At least four of five fresh descendants improve.
-- The exact stored attack replays under both defense versions.
-
-The gate can reject a plausible Blue proposal. The audit ledger stores either verdict.
-
-## Exact replay and generalization
-
-Exact replay uses the same scenario identifier, genome, seed, dataset version, and model versions.
-
-The replay shows causal decision changes for one stored attack. It does not prove generalization.
-
-The five fresh descendants provide the separate generalization test.
-
-## Metric definitions
-
-The system treats `block` as a positive fraud decision. It reports `review` separately.
-
-| Metric | Definition |
-|---|---|
-| Fraud recall | `TP / (TP + FN)` |
-| Precision | `TP / (TP + FP)` |
-| F1 | Harmonic mean of precision and recall |
-| False-positive rate | `FP / (FP + TN)` |
-| False-negative rate | `FN / (TP + FN)` |
-| Review rate | Reviewed legitimate rows divided by all legitimate rows |
-| Average precision | Mean precision at each positive rank |
-| Attack success rate | Allowed attack rows divided by all attack rows |
-| Mutation robustness | Fraction of fresh descendants that improve after defense |
-
-The system does not label average precision as PR-AUC. The implementation uses the exact average-precision formula.
+Conflating them allows a diff made entirely of fresh-seed rows to be presented as
+evidence about the stored scenario. An earlier version of this repository did exactly
+that, and the stored scenario had in fact changed zero decisions.
 
 ## Reproducibility
 
-Every experiment record stores these values:
-
-- Experiment identifier
-- Scenario and parent identifiers
-- Random seed
-- Dataset version
-- Attack version
-- Detector version
-- Defense version
-- Reasoning version
-- Timestamp
-- Metrics or verdict
-
-The same seed and versions reproduce the same results. The tests exclude measured wall-clock latency from byte equality.
-
-## Limits
-
-The population and fraud behavior are synthetic. The results show system behavior, not real-world loss prevention.
-
-The final test uses fresh seeds from the same simulator. A production study needs authorized external distributions.
-
-The current graph signal covers synthetic customer-to-merchant convergence. It does not cover a full payment-network graph.
+Compilation is a pure function of `(genome, seed, world)`. Transaction ids are assigned
+once at generation time and never renumbered, so replays stay byte-exact even when merge
+orders differ. Experiment ids are content-derived: the same experiment run twice produces
+the same id. `npm run evidence` regenerates the entire bundle; `npm run docs` regenerates
+every measured document from it.

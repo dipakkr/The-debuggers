@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "test": "vitest run",
+    "docs": "tsx scripts/render-docs.ts",
     "docx": "tsx scripts/make-docx.mts",
     "handoff": "sh scripts/make-handoff.sh",
     "selfcheck": "npm run lint && npm run typecheck && npm run test && npm run build"

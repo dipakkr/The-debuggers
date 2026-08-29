@@ -1,47 +1,103 @@
-# Current GenAI Payment-Fraud Threat Landscape
+# GenAI payment-fraud threat landscape
 
-This review uses defensive abstractions only. The simulator implements three families and documents the other families.
+Defensive abstractions only. Every entry describes a behavioural shape and the payment
+signal it produces; none contains an operational method.
 
-## Research basis
+## What actually changed
 
-Current public sources show three major changes:
+GenAI did not invent new fraud typologies. It changed four things about the existing ones:
 
-- GenAI increases the scale and credibility of impersonation and scam content.
-- Synthetic identities and coordinated fraud remain important payment risks.
-- Attackers shift behavior after stronger authentication and network controls.
+1. **Marginal cost.** Personalised impersonation, synthetic identity histories and
+   dispute narratives now cost effectively nothing per victim.
+2. **Adaptation speed.** An agent can hypothesise, execute, observe a rejection and mutate
+   faster than a defender can label the data and retrain. The gap between retraining
+   cycles is now an exploitable window.
+3. **Coherence at scale.** Batches of identities, storefronts and documents can be minted
+   that are internally consistent, defeating checks that relied on inconsistency.
+4. **New surfaces.** Delegated agentic commerce and prompt-injectable free-text fields in
+   the payment message are attack surfaces that did not previously exist.
 
-Sources:
+Sources for the defensive framing: Mastercard on AI in fraud prevention (July 2026), Visa
+Biannual Threats Report (Spring 2026), FBI Internet Crime Report (2025), Europol IOCTA
+(2025).
 
-- [Mastercard: AI and payment fraud prevention, July 2026](https://www.mastercard.com/global/en/news-and-trends/Insights/2026/ai-is-helping-banks-save-millions-by-transforming-payment-fraud-prevention.html)
-- [Visa: Spring 2026 Biannual Threats Report](https://corporate.visa.com/en/sites/visa-perspectives/newsroom/visa-spring-2026-biannual-threats-report.html)
-- [FBI: 2025 Internet Crime Report summary, April 2026](https://www.fbi.gov/news/press-releases/cryptocurrency-and-ai-scams-bilk-americans-of-billions)
-- [Europol: 2025 Internet Organised Crime Threat Assessment](https://www.europol.europa.eu/media-press/newsroom/news/steal-deal-repeat-cybercriminals-cash-in-your-data)
+## The corpus
 
-## Family assessment
+19 families across 7 categories. **Simulated** means the payment twin compiles and scores
+it end to end; **research** means it is documented with the sensor it would need rather
+than faked.
 
-| Attack family | GenAI advantage | Observable payment signals | Expected blind spot | Safe simulation | MVP |
-|---|---|---|---|---|---|
-| Adaptive card testing and drain | Varies probes, timing, and merchant mix after rejection | Probe bursts, velocity, later escalation | Few-probe variants avoid familiar sequence rules | Bounded probes against synthetic tokens and merchants | Selected |
-| Low-and-slow camouflage | Tunes amount and cadence below fixed thresholds | Flat tickets, regular gaps, cumulative spend | Point-wise features remain mild | Synthetic cadence and amount profiles | Selected |
-| Coordinated mule fan-out | Creates consistent identity batches and shared cash-out behavior | Newcomer convergence, ticket coherence, young accounts | Per-account activity looks normal | Synthetic customer-to-merchant graph | Selected |
-| Synthetic identity maturation | Builds plausible personas and long activity histories | Thin files, age cohorts, later behavior shifts | Mature synthetic histories resemble legitimate users | Synthetic account-age distributions | Research only |
-| Account takeover adaptation | Personalizes lures and adjusts login or payment pacing | New device, geography, recipient change, drain | A warmed device weakens new-device rules | Synthetic device and session history | Research only |
-| Adaptive velocity camouflage | Changes event spacing after fixed-window blocks | Burst-pause cycles and window-edge timing | Payments stay below each local window | Bounded interarrival values | Research only |
-| Transaction splitting | Selects many near-limit values across contexts | Repeated cumulative value and recipient spread | Each payment remains under an amount rule | Synthetic split counts and totals | Research only |
-| AI-personalized payment scams | Produces credible messages, voices, and videos at scale | New payee, urgency, channel change, authorized payment | Transaction data cannot prove the social context | Aggregate risk flags only | Research only |
-| KYC and document manipulation | Creates coherent identity artifacts quickly | Document anomalies and cross-application reuse | The signal exists before transaction scoring | Synthetic metadata only | Research only |
-| Merchant and customer collusion | Coordinates storefront and customer behavior | Shared devices, circular flows, concentrated refunds | Each party can appear normal alone | Synthetic bipartite graph patterns | Research only |
-| Multi-channel impersonation | Maintains one story across voice, text, email, and support | Channel switching and unusual beneficiary setup | Signals sit across disconnected systems | Synthetic channel events without content generation | Research only |
-| Autonomous boundary probing | Repeats hypothesis, execution, feedback, and mutation | Cross-attempt behavior drift | Retraining cycles react too slowly | The Arena's bounded feedback loop | Selected capability |
+### Card not present
 
-## Selection decision
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Adaptive card testing to drain | Varies probe amount, timing and merchant mix after each rejection | Few-probe variants that jump straight to moderate escalation | **Simulated** |
+| Low-and-slow camouflage | Tunes spend under thresholds, mimics human cadence over long horizons | Point-wise detectors see only mild individual signals | **Simulated** |
+| Structuring across storefronts | Decomposes one value into legs under a ceiling, sprayed across merchants | Each leg is unremarkable; no merchant sees the repetition | **Simulated** |
+| Adaptive velocity camouflage | Reshapes inter-arrival times after each block, learning window edges | Pacing below every local window while the daily total is extreme | Research |
+| BIN enumeration and credential stuffing | Generated request signatures and timing jitter defeat bot fingerprinting | Enumeration spread thin stays under every per-merchant limit | Research |
 
-The MVP implements three families:
+### Identity
 
-1. Adaptive card testing and drain proves known-fraud detection and mutation.
-2. Low-and-slow camouflage proves temporal evasion without a sequence model.
-3. Coordinated mule fan-out proves the value of a justified graph signal.
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Account takeover with device warming | Lures at scale, then paces the takeover around session-risk windows | A warmed device on a mature account suppresses every novelty signal | **Simulated** |
+| Synthetic identity maturation | Personas pass documentary checks; histories farmed patiently | Behaviourally mature synthetic files look like real thin-file customers | Research |
+| Wallet and token provisioning abuse | Voice-cloned call-centre verification defeats the yellow path | Once provisioned, downstream scoring sees a clean instrument | Research |
+| Deepfake KYC and liveness defeat | Generated documents and injected video streams | The signal exists entirely before transaction scoring | Research |
 
-These families cover classic, temporal, and network behavior. They stay observable inside the synthetic payment twin.
+### Instant rails
 
-The MVP excludes content-level phishing, deepfake, and document analysis. Those families need different sensors and weaken the vertical slice.
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Coordinated mule-network fan-out | Mints a coherent identity batch converging on one cash-out point | Per-account behaviour is normal; the structure lives *between* accounts | **Simulated** |
+
+### Social engineering
+
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| AI-personalised authorised push payment scams | Tailored scripts per victim, sustained over days | The payment is genuinely authorised; transaction data cannot prove coercion | Research |
+| Voice-clone step-up bypass | Real-time cloning from seconds of public audio | The verification itself becomes the attack surface, and succeeds | Research |
+| Multi-channel impersonation | One persona held consistent across voice, SMS, email and support | Signals sit across disconnected systems that never join | Research |
+
+### Merchant side
+
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Merchant collusion and bust-out | Generated storefronts, catalogues and review histories | Each party looks normal alone; collusion is a property of the pair | Research |
+| Orchestrated refund abuse | Dispute narratives generated per order and tuned against what works | Claims spread across merchants never accumulate at any one | Research |
+| First-party (friendly) chargeback at scale | Assistants draft the strongest available dispute reason per transaction | The original payment is genuine; pre-authorisation scoring has nothing to flag | Research |
+
+### Agentic
+
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Autonomous attack iteration | Hypothesise → execute → observe → mutate, faster than retraining | The gap between retraining cycles | Implemented **as this arena's loop** |
+| Delegated agentic-commerce abuse | Compromised shopping agents transact with valid delegated credentials | Machine cadence is the *expected* shape here, so bot-detection signals invert | Research |
+| Prompt injection of the defense pipeline | Attacker-controlled merchant descriptors and memos carry instructions for the defender's own LLM | The defense's reasoning layer becomes the attack surface | Implemented **as a defense** |
+
+## Why these five are simulated
+
+The five compiled families were chosen to break **five different parts of a detector**,
+not to be five variations on one idea:
+
+| Family | Detector weakness it exposes |
+|---|---|
+| Card testing to drain | Classic burst and sequence rules |
+| Low-and-slow | Temporal shape, invisible to point-wise scoring |
+| Mule fan-out | Cross-account graph structure |
+| Account takeover | Session and device context on a mature account |
+| Structuring | Cumulative value hidden by decomposition |
+
+A family is only simulated if the payment twin can observe it honestly. Authorised push
+payment fraud, deepfake KYC and voice-clone bypass are excluded on principle: their
+signal lives outside the transaction stream, and simulating them at transaction level
+would mean inventing evidence the sensor cannot see.
+
+## The prompt-injection entry is a defense, not a simulation
+
+Merchant descriptors and payment memos are attacker-controlled free text that flows into
+any LLM in a fraud pipeline. This repository treats every such string as untrusted data:
+scrubbed for instruction-override, role-hijack and decision-manipulation patterns, size
+capped, and fenced inside `<data>` tags with a system instruction never to follow its
+contents. See [the threat model](threat-model.md).
