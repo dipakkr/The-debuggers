@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-29T00:42:20.712Z",
-  "commit": "f9bf10074a0e5b051374877fc250329f096498ee",
+  "generated_at": "2026-08-29T00:55:55.964Z",
+  "commit": "1d0a953f5dc1d6ff907001899898d887a28b124e",
   "mode": "demo",
   "seeds": {
     "train": 10101,
@@ -25,8 +25,8 @@
     "fnr": 0.2962962962962963,
     "review_rate": 0.015660478162147724,
     "average_precision": 0.5988799585758138,
-    "p50_latency_ms": 0.000334,
-    "p95_latency_ms": 0.001042,
+    "p50_latency_ms": 0.000417,
+    "p95_latency_ms": 0.001166,
     "n_legit": 29948,
     "n_fraud": 81
   },
@@ -536,8 +536,8 @@
       "fnr": 0.7222222222222222,
       "review_rate": 0.018264992653933484,
       "average_precision": 0.15042959565080946,
-      "p50_latency_ms": 0.00025,
-      "p95_latency_ms": 0.000417,
+      "p50_latency_ms": 0.000291,
+      "p95_latency_ms": 0.000458,
       "n_legit": 29948,
       "n_fraud": 90
     },

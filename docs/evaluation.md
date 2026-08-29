@@ -7,7 +7,7 @@ Every number here is produced by the Referee and read straight out of
 Do not edit the numbers by hand — hand-editing is exactly how a claim drifts away from
 the evidence that is supposed to support it.
 
-Generated 2026-08-29T00:42:20.712Z from commit `f9bf10074a0e`.
+Generated 2026-08-29T00:55:55.964Z from commit `1d0a953f5dc1`.
 
 ## Experiment identity
 
@@ -100,7 +100,7 @@ Proposed configuration: `{"threshold":0.865,"escalation_weight":0,"pattern_weigh
 confidence 0.72.
 
 Reproduce everything below with `npm run evidence`. The committed run records commit
-`f9bf10074a0e` and the fixed seeds `train=10101`, `search=20202`,
+`1d0a953f5dc1` and the fixed seeds `train=10101`, `search=20202`,
 `blue_dev=30303`, `final_test=40404`.
 
 ### The detector on attacks it was trained to catch
