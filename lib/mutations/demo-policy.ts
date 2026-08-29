@@ -14,6 +14,8 @@ export const ROOT_BY_FAMILY: Record<Genome["family"], number> = {
   card_testing_drain: 0,
   low_and_slow: 3,
   mule_fanout: 4,
+  account_takeover: 5,
+  transaction_splitting: 6,
 };
 
 export function rootGenome(family: Genome["family"]): Genome {
@@ -76,6 +78,54 @@ export function demoMutation(
         g.sequence.regularity = 0.97;
         g.amount.base = Math.min(g.amount.base, 190);
         g.temporal.span_hours = Math.min(336, g.temporal.span_hours * 1.5);
+      }
+      return g;
+    }
+    case "account_takeover": {
+      if (stage <= 0) return rootGenome("account_takeover");
+      if (hit("GEO_ANOMALY", "CROSS_BORDER")) {
+        // stop tripping the geography rule: cash out inside the victim's country
+        g.device.geo_jump_km = 0;
+      }
+      if (hit("NEW_DEVICE") || stage === 1) {
+        // warm the takeover device before using it, so it enters history first
+        g.device.age_days = Math.min(3650, Math.max(30, g.device.age_days * 3 + 30));
+      }
+      if (hit("AMOUNT_ANOMALY", "AMOUNT_CEILING") || stage >= 2) {
+        // shrink the cash-out toward the victim's own spending scale and
+        // spread it over more legs so no single row looks anomalous
+        g.amount.drain_multiplier = Math.max(1, g.amount.drain_multiplier * 0.45);
+        g.velocity.tx_per_hour = Math.min(40, Math.max(6, g.velocity.tx_per_hour + 6));
+      }
+      if (stage >= 3) {
+        // sit dormant after the takeover so the session no longer correlates
+        g.takeover.dwell_hours = Math.min(168, Math.max(24, g.takeover.dwell_hours * 8 + 24));
+        g.takeover.recon_tx_count = 0;
+        g.sequence.interarrival_s = Math.min(604800, g.sequence.interarrival_s * 6);
+        g.merchant.new_merchant = false;
+        g.temporal.start_hour_utc = 12;
+      }
+      return g;
+    }
+    case "transaction_splitting": {
+      if (stage <= 0) return rootGenome("transaction_splitting");
+      if (hit("STRUCTURING_BAND", "AMOUNT_ANOMALY") || stage === 1) {
+        // step the legs down out of the near-ceiling detection band
+        g.split.ceiling_ratio = Math.max(0.5, g.split.ceiling_ratio - 0.22);
+        g.amount.base = Math.max(1, Math.round(g.amount.base * 0.55));
+      }
+      if (hit("VELOCITY_HIGH", "VELOCITY_BURST", "RULE_VELOCITY_BURST") || stage >= 2) {
+        g.sequence.interarrival_s = Math.min(604800, g.sequence.interarrival_s * 5);
+        g.velocity.tx_per_hour = Math.max(1, Math.floor(g.velocity.tx_per_hour / 2));
+        g.temporal.span_hours = Math.min(336, g.temporal.span_hours * 3);
+      }
+      if (stage >= 3) {
+        // widen across storefronts and drop the leg count so no merchant sees
+        // a repeating pattern
+        g.split.merchant_spread = Math.min(8, g.split.merchant_spread + 3);
+        g.split.count = Math.max(1, g.split.count - 2);
+        g.amount.jitter = 0.28;
+        g.merchant.new_merchant = false;
       }
       return g;
     }

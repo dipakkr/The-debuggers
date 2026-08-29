@@ -2,7 +2,7 @@
  * Minimal OpenAI-compatible chat client with hard timeout, one retry and a
  * structured result. LIVE mode only; DEMO mode never calls this.
  */
-import type { ZodType } from "zod";
+import type { ZodType, ZodTypeDef } from "zod";
 
 export interface LlmResult {
   ok: boolean;
@@ -22,7 +22,7 @@ function cfg() {
     process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1"
   ).href.replace(/\/$/, "");
   const key = process.env.OPENAI_API_KEY;
-  const model = process.env.ARENA_MODEL ?? "gpt-4o-mini";
+  const model = process.env.ARENA_MODEL ?? "gpt-5";
   return { base, key, model };
 }
 
@@ -118,7 +118,7 @@ export function parseJsonLoose<T>(text: string): T | null {
 export async function chatStructured<T>(
   system: string,
   user: string,
-  schema: ZodType<T>,
+  schema: ZodType<T, ZodTypeDef, unknown>,
   timeoutMs = 15_000,
   complete: Completion = chatJson
 ): Promise<

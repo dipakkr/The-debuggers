@@ -1,6 +1,7 @@
 import { Scenario, MetricsResult } from "./contracts/genome";
 import { ScenarioOutcome } from "./referee/referee";
 import type { EvalRun } from "./referee/referee";
+import type { OperatingPoint } from "./metrics/metrics";
 
 export interface StoredScenario {
   scenario: Scenario;
@@ -23,6 +24,8 @@ export interface ArenaState {
   beam: string[];
   blindSpotScenarioId: string | null;
   baselineRun: EvalRun | null; // v1 on the FINAL pool
+  /** precision/recall across the score range on the baseline pool */
+  baselineOperatingPoints: OperatingPoint[];
   lastSearchMetrics: MetricsResult | null; // detector under active attack (search pool)
   defenseProposal: unknown | null;
   defenseConfig: unknown | null;
@@ -43,6 +46,7 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
     beam: [],
     blindSpotScenarioId: null,
     baselineRun: null,
+    baselineOperatingPoints: [],
     lastSearchMetrics: null,
     defenseProposal: null,
     defenseConfig: null,
@@ -55,9 +59,61 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
   };
 }
 
-// ponytail: one process-global demo session; use a shared session store before multi-replica deployment.
-const g = globalThis as unknown as { __arenaState?: ArenaState };
-export function arena(): ArenaState {
-  if (!g.__arenaState) g.__arenaState = freshState("demo");
-  return g.__arenaState;
+/**
+ * Session registry. The public deployment is used by several reviewers at
+ * once; a single process-global arena means one visitor's RESET destroys
+ * everybody else's run mid-demo. Each browser session gets its own arena,
+ * keyed by a cookie the API layer issues.
+ *
+ * Still in-process: a multi-replica deployment needs a shared store. The
+ * durable record of every experiment is the Referee's JSONL ledger, not this.
+ */
+const MAX_SESSIONS = 64;
+const SESSION_TTL_MS = 60 * 60 * 1000;
+
+interface Session {
+  state: ArenaState;
+  touched: number;
+}
+
+const g = globalThis as unknown as { __arenaSessions?: Map<string, Session> };
+function registry(): Map<string, Session> {
+  if (!g.__arenaSessions) g.__arenaSessions = new Map();
+  return g.__arenaSessions;
+}
+
+export const DEFAULT_SESSION = "default";
+
+export function arena(sessionId: string = DEFAULT_SESSION): ArenaState {
+  const sessions = registry();
+  const now = Date.now();
+
+  for (const [key, entry] of sessions) {
+    if (now - entry.touched > SESSION_TTL_MS) sessions.delete(key);
+  }
+  // bounded memory: evict least-recently-used before admitting a new session
+  while (sessions.size >= MAX_SESSIONS && !sessions.has(sessionId)) {
+    let oldestKey: string | null = null;
+    let oldest = Infinity;
+    for (const [key, entry] of sessions) {
+      if (entry.touched < oldest) {
+        oldest = entry.touched;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey === null) break;
+    sessions.delete(oldestKey);
+  }
+
+  let entry = sessions.get(sessionId);
+  if (!entry) {
+    entry = { state: freshState("demo"), touched: now };
+    sessions.set(sessionId, entry);
+  }
+  entry.touched = now;
+  return entry.state;
+}
+
+export function activeSessionCount(): number {
+  return registry().size;
 }

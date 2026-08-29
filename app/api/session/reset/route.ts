@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { arena, freshState } from "@/lib/state";
+import { freshState } from "@/lib/state";
+import { sessionArena } from "@/lib/session";
 import { resetArena } from "@/lib/mutations/engine";
 import { serializeState } from "@/lib/serialize";
 
@@ -25,8 +26,9 @@ export async function POST(req: Request) {
   })();
   const mode = body.mode === "live" ? "live" : "demo";
   const state = freshState(mode);
-  // Replace the singleton contents so every route sees the new session.
-  const current = arena();
+  // Replace this session's arena contents in place so every route that later
+  // resolves the same cookie sees the new run.
+  const { state: current } = await sessionArena();
   Object.assign(current, state);
   resetArena(current);
   return NextResponse.json(serializeState(current));

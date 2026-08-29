@@ -1,4 +1,5 @@
 import {
+  ATTACK_FAMILIES,
   Genome,
   GenomeSchema,
   ScenarioSchema,
@@ -82,6 +83,7 @@ export function resetArena(state = arena()): void {
   state.childrenOf.clear();
   state.beam = [];
   state.blindSpotScenarioId = null;
+  state.baselineOperatingPoints = [];
   state.defenseProposal = null;
   state.defenseConfig = null;
   state.defenseAccepted = null;
@@ -92,16 +94,17 @@ export function resetArena(state = arena()): void {
   const model = loadModel();
   // Baseline scoreboard: v1 against the LOUD canonical templates on the
   // held-out pool — this is the "known attacks are detected" evidence.
-  const familiesBase: Genome["family"][] = ["card_testing_drain", "low_and_slow", "mule_fanout"];
+  const familiesBase: Genome["family"][] = [...ATTACK_FAMILIES];
   const baseSpecs = familiesBase.map((f, i) => ({
     genome: rootGenome(f),
     seed: SEEDS.final_test + (i + 1) * 7717,
     scenario_id: `AF-BASE${i}`,
   }));
   state.baselineRun = refereeEvaluate(model, null, baseSpecs, { legitSeed: SEEDS.final_test });
+  state.baselineOperatingPoints = state.baselineRun.operating_points;
 
   // generation 0: one loud root per family — the "known attacks" the baseline catches
-  const families: Genome["family"][] = ["card_testing_drain", "low_and_slow", "mule_fanout"];
+  const families: Genome["family"][] = [...ATTACK_FAMILIES];
   const specs = families.map((f) => ({
     genome: rootGenome(f),
     seed: SEEDS.search,
@@ -263,7 +266,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
   // parents: current beam (or roots again on re-run of gen 1)
   const parentIds =
     state.beam.length > 0
-      ? state.beam.slice(0, 3)
+      ? state.beam.slice(0, ATTACK_FAMILIES.length)
       : [...state.scenarios.values()].filter((s) => s.scenario.generation === 0).map((s) => s.scenario.scenario_id);
 
   let usedLlm = false;
@@ -314,7 +317,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
   // beam = FRONTIER per family: deepest generation first (always evolve
   // forward), fitness breaks ties. Fitness-only ranking let stale ancestors
   // pin the search to stage one.
-  const fams: Genome["family"][] = ["card_testing_drain", "low_and_slow", "mule_fanout"];
+  const fams: Genome["family"][] = [...ATTACK_FAMILIES];
   const beam: string[] = [];
   for (const fam of fams) {
     const cands = [...state.scenarios.values()].filter(
@@ -327,7 +330,7 @@ export async function runGeneration(state = arena()): Promise<GenerationResult> 
     );
     beam.push(cands[0].scenario.scenario_id);
   }
-  state.beam = beam.slice(0, 3);
+  state.beam = beam.slice(0, ATTACK_FAMILIES.length);
 
   // A blind spot must be REAL, not seed luck: the candidate evasion is
   // recompiled under four fresh seeds and must hold its evasion median.

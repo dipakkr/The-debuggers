@@ -77,7 +77,8 @@ export function buildWorld(seed = 20260822, nCustomers = 1200, nMerchants = 300)
       active_end,
       pref_merchants: prefs,
       device_ids: [`D-${id}-1`, ...(crng() < 0.25 ? [`D-${id}-2`] : [])],
-      country: "US",
+      // home country of the cardholder; most spend happens here
+      country: crng() < 0.82 ? "US" : pick(crng, COUNTRIES),
       // ~8% of the legit population are young accounts; the graph gate must
       // tolerate them without exploding false positives.
       account_age_days: crng() < 0.08 ? int(crng, 15, 29) : int(crng, 60, 2400),
@@ -116,7 +117,9 @@ export function generateLegitStream(world: World, seed: number, days: number, ep
           mcc: merchant.mcc,
           device_id: rng() < 0.9 ? c.device_ids[0] : c.device_ids[c.device_ids.length - 1],
           channel: ["online_retail", "digital_goods", "travel"].includes(merchant.mcc) ? "ecommerce" : "card_present",
-          country: merchant.country,
+          // genuine cross-border spend (travel, foreign e-commerce) happens,
+          // but it is the exception — ~4% of a cardholder's payments
+          country: rng() < 0.04 ? merchant.country : c.country,
           scenario_id: "BACKDROP",
           kind: "backdrop",
           ground_truth: "legit",

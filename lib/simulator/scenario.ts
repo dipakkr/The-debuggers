@@ -1,6 +1,6 @@
 import { mulberry32, hashSeed, uniform, int, pick } from "@/lib/rng";
 import { Genome, Transaction } from "@/lib/contracts/genome";
-import { World, merchantById, CustomerProfile } from "./world";
+import { World, merchantById, Merchant } from "./world";
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
@@ -8,6 +8,9 @@ const HOUR_MS = 3_600_000;
 export interface CompiledScenario {
   transactions: Transaction[];
   customer_windows: Map<string, [number, number]>;
+  /** ids of REAL population customers whose accounts this scenario rides
+   *  (account takeover). Their backdrop history is the attack's cover. */
+  victim_customer_ids: string[];
 }
 
 function attackerId(scenario: string, k = 0): string {
@@ -28,20 +31,38 @@ export function compileScenario(
 ): CompiledScenario {
   const rng = mulberry32(seed);
   const windows = new Map<string, [number, number]>();
+  const victims: string[] = [];
+  // the account's home country; attack rows only look geographically odd when
+  // the genome actually asks for a jump
+  let homeCountry = "US";
   const txs: Transaction[] = [];
   let seq = 0;
   const nextId = (kind: "A" | "W") => `${scenario_id}-${kind}${String(++seq).padStart(3, "0")}`;
 
+  const inMcc = world.merchants.filter((m) => m.mcc === genome.merchant.mcc);
   const target =
-    merchantById(world, pick(rng, world.merchants.filter((m) => m.mcc === genome.merchant.mcc)).id) ??
-    world.merchants[0];
+    merchantById(world, pick(rng, inMcc.length ? inMcc : world.merchants).id) ?? world.merchants[0];
+
+  // merchant panel for structuring: `merchant_spread` distinct storefronts
+  const panel: Merchant[] = [target];
+  while (panel.length < Math.min(genome.split.merchant_spread, 8)) {
+    const m = pick(rng, world.merchants);
+    if (!panel.some((p) => p.id === m.id)) panel.push(m);
+  }
 
   const [winStart, winEnd] = (() => {
     const s = int(rng, 4, 11);
     return [s, Math.min(23, s + int(rng, 10, 14))] as [number, number];
   })();
 
-  const mkTx = (cid: string, ageDays: number, amount: number, tsMs: number, deviceId: string): Transaction => {
+  const mkTx = (
+    cid: string,
+    ageDays: number,
+    amount: number,
+    tsMs: number,
+    deviceId: string,
+    merchant: Merchant = target
+  ): Transaction => {
     const timestamp = Math.round(tsMs);
     return {
       tx_id: nextId("A"),
@@ -53,11 +74,11 @@ export function compileScenario(
       token_id: `T-${cid}`,
       session_id: `S-${cid}-${Math.floor(timestamp / DAY_MS)}`,
       account_age_days: ageDays,
-      merchant_id: target.id,
-      mcc: target.mcc,
+      merchant_id: merchant.id,
+      mcc: merchant.mcc,
       device_id: deviceId,
-      channel: ["online_retail", "digital_goods", "travel"].includes(target.mcc) ? "ecommerce" : "card_present",
-      country: genome.device.geo_jump_km > 800 ? "ABROAD" : "US",
+      channel: ["online_retail", "digital_goods", "travel"].includes(merchant.mcc) ? "ecommerce" : "card_present",
+      country: genome.device.geo_jump_km > 800 ? "ABROAD" : homeCountry,
       scenario_id,
       kind: "attack",
       ground_truth: "fraud",
@@ -138,6 +159,63 @@ export function compileScenario(
         )
       );
     }
+  } else if (genome.family === "account_takeover") {
+    // ATO rides a REAL population account. The victim's own backdrop stream
+    // is the cover history, so amt_z / new_device / geo_anomaly / dormancy are
+    // measured against genuine behaviour rather than a synthetic stub.
+    const victim = genome.takeover.victim_reuse
+      ? world.customers[Math.floor(rng() * world.customers.length)]
+      : null;
+    const cid = victim ? victim.id : attackerId(scenario_id);
+    const ageDays = victim ? victim.account_age_days : genome.identity.account_age_days;
+    let devId: string;
+    if (victim) {
+      victims.push(victim.id);
+      homeCountry = victim.country;
+      windows.set(cid, [victim.active_start, victim.active_end]);
+      // takeover device: fresh unless the attacker warmed it first
+      devId = genome.device.age_days >= 14 ? victim.device_ids[0] : `D-${cid}-TAKEOVER`;
+    } else {
+      devId = warmupFor(cid, ageDays, !genome.merchant.new_merchant);
+    }
+
+    let ts = startTs;
+    // recon: small balance-checking payments
+    for (let p = 0; p < genome.takeover.recon_tx_count; p++) {
+      txs.push(mkTx(cid, ageDays, uniform(rng, 1, 12), ts, devId));
+      ts += gapMs(rng, genome);
+    }
+    // dwell quietly, then cash out
+    ts += genome.takeover.dwell_hours * HOUR_MS;
+    const cashOut = genome.amount.base * genome.amount.drain_multiplier;
+    const legs = Math.max(1, Math.min(6, Math.round(genome.velocity.tx_per_hour / 3)));
+    for (let j = 0; j < legs; j++) {
+      txs.push(
+        mkTx(cid, ageDays, (cashOut / legs) * (1 + uniform(rng, -genome.amount.jitter, genome.amount.jitter)), ts, devId)
+      );
+      ts += gapMs(rng, genome);
+    }
+  } else if (genome.family === "transaction_splitting") {
+    // structuring: one intended value decomposed into legs parked just under
+    // a ceiling and spread across a merchant panel.
+    const cid = attackerId(scenario_id);
+    const devId = warmupFor(cid, genome.identity.account_age_days, !genome.merchant.new_merchant);
+    const leg = genome.amount.base * genome.split.ceiling_ratio;
+    let ts = startTs;
+    for (let j = 0; j < genome.split.count; j++) {
+      const m = panel[j % panel.length];
+      txs.push(
+        mkTx(
+          cid,
+          genome.identity.account_age_days,
+          Math.max(0.5, leg * (1 + uniform(rng, -genome.amount.jitter, genome.amount.jitter))),
+          ts,
+          devId,
+          m
+        )
+      );
+      ts += gapMs(rng, genome);
+    }
   } else {
     // low_and_slow: steady sub-threshold spend over a long window.
     const cid = attackerId(scenario_id);
@@ -150,7 +228,7 @@ export function compileScenario(
     }
   }
 
-  return { transactions: txs, customer_windows: windows };
+  return { transactions: txs, customer_windows: windows, victim_customer_ids: victims };
 }
 
 function jittered(rng: () => number, g: Genome): number {

@@ -1,5 +1,5 @@
 {
-  "version": "risk-engine-1.0.0",
+  "version": "risk-engine-1.1.0",
   "feature_names": [
     "amt_z",
     "vel_1h",
@@ -7,26 +7,35 @@
     "hour_outside_pref",
     "new_device",
     "new_merchant",
-    "probe_count_24h"
+    "probe_count_24h",
+    "near_limit_repeat_24h"
   ],
   "w": [
-    0.46832265910508597,
-    0.8406916033372361,
-    0.771105845736973,
-    5.104609420743511,
-    6.996122630224086,
-    -1.3768170616698796,
-    0.02420476343266526
+    0.4870373590604725,
+    0.6535973520776313,
+    0.7018306075817088,
+    4.690155937069556,
+    5.483210780714523,
+    0.04473096496936728,
+    1.3137759024262434,
+    0.686072305690974
   ],
-  "b": -5.998527134463661,
-  "threshold_block": 0.3874,
-  "threshold_review": 0.1562,
+  "b": -5.884570445316144,
+  "threshold_block": 0.895,
+  "threshold_review": 0.5674,
   "trained_on": {
     "world_seed": 20260822,
     "train_seed": 10101,
     "days": 30,
-    "rows": 25084,
-    "train_recall_at_threshold": 0.8414035087719298,
-    "train_fpr_at_threshold": 0.02615212884707383
+    "rows": 25505,
+    "train_recall_at_threshold": 0.6327295440349782,
+    "train_fpr_at_threshold": 0.002744559890217604,
+    "calibration": "max-F1 on held-out 20% slice re-weighted to 0.3% deployment prevalence, FPR ceiling 0.3%",
+    "deploy_prevalence": 0.003,
+    "calibration_precision": 0.6466656839715103,
+    "calibration_recall": 0.5132743362831859,
+    "calibration_f1": 0.5723001085257978,
+    "calibration_fpr": 0.0008438818565400844,
+    "calibration_precision_in_slice": 0.9789029535864979
   }
 }

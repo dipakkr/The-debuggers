@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { arena } from "@/lib/state";
+import { sessionArena } from "@/lib/session";
 import { loadModel } from "@/lib/mutations/engine";
 import { runDefenseGate } from "@/lib/defense/gate";
 import { ProposalSchema } from "@/lib/contracts/genome";
@@ -8,7 +8,7 @@ import { serializeState } from "@/lib/serialize";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const state = arena();
+  const { state } = await sessionArena();
   if (!state.defenseProposal) {
     return NextResponse.json({ error: "no defense proposal — run investigation first" }, { status: 400 });
   }

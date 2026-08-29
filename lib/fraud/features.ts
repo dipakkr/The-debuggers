@@ -5,6 +5,9 @@ interface CustState {
   ts: number[];
   devices: Set<string>;
   merchants: Set<string>;
+  countries: Set<string>;
+  /** merchant id per historical tx, index-aligned with `ts` */
+  merchantSeq: string[];
 }
 
 interface MerchantHit {
@@ -17,6 +20,9 @@ interface MerchantHit {
 }
 
 const HOUR = 3_600_000;
+
+/** Round value ceilings that structuring is typically shaped against. */
+const CEILINGS = [100, 200, 500, 1000, 2000, 2500, 5000, 10000];
 
 export interface Featurized {
   tx: Transaction;
@@ -63,7 +69,7 @@ export function featurize(
   for (const tx of sortedTxs) {
     let cs = cust.get(tx.customer_id);
     if (!cs) {
-      cs = { amounts: [], ts: [], devices: new Set(), merchants: new Set() };
+      cs = { amounts: [], ts: [], devices: new Set(), merchants: new Set(), countries: new Set(), merchantSeq: [] };
       cust.set(tx.customer_id, cs);
     }
     const now = tx.ts_ms;
@@ -74,16 +80,36 @@ export function featurize(
     let probe_count_24h = 0;
     const recentTs: number[] = [];
     const recentAmts: number[] = [];
+    const amts24: number[] = [];
     for (let i = cs.ts.length - 1; i >= 0; i--) {
       const dt = now - cs.ts[i];
       if (dt > 7 * 24 * HOUR) break;
       if (dt <= HOUR) vel_1h++;
       if (dt <= 24 * HOUR) {
         vel_24h++;
-        if (cs.amounts[i] < 10 && dt > 0) probe_count_24h++;
+        amts24.push(cs.amounts[i]);
+        // probes are micro-amounts hammering the SAME merchant. Counting every
+        // sub-$10 payment instead makes this collinear with raw volume.
+        if (cs.amounts[i] < 10 && dt > 0 && cs.merchantSeq[i] === tx.merchant_id) probe_count_24h++;
       }
       recentTs.unshift(cs.ts[i]);
       recentAmts.unshift(cs.amounts[i]);
+    }
+
+    // dormancy: hours since the customer's previous payment, capped at a week.
+    // ATO cash-outs typically follow a quiet takeover window.
+    const dormancy_h = cs.ts.length
+      ? clamp((now - cs.ts[cs.ts.length - 1]) / HOUR, 0, 168)
+      : 168;
+
+    // structuring: legs of a split sit in a narrow band just under a round
+    // ceiling. Count trailing-24h payments (this one included) that land in
+    // the top decile below one of the common reporting/limit ceilings.
+    const nearCeiling = (v: number): boolean =>
+      CEILINGS.some((c) => v <= c * 0.995 && v >= c * 0.85);
+    let near_limit_repeat_24h = 0;
+    if (nearCeiling(tx.amount)) {
+      near_limit_repeat_24h = 1 + amts24.filter(nearCeiling).length;
     }
 
     const amt_z =
@@ -98,6 +124,9 @@ export function featurize(
     const new_device = cs.devices.has(tx.device_id) ? 0 : 1;
     const new_merchant = cs.merchants.has(tx.merchant_id) ? 0 : 1;
     const young_account = tx.account_age_days < 30 ? 1 : 0;
+    // a country this customer has never transacted in before. First-ever
+    // payment is not an anomaly — there is no prior geography to contradict.
+    const geo_anomaly = cs.countries.size > 0 && !cs.countries.has(tx.country) ? 1 : 0;
 
     // escalation vs same-merchant priors within 48h
     let escalation_score = 0;
@@ -122,6 +151,17 @@ export function featurize(
       const amtMean = mean(amtWindow);
       const amtCv = amtMean > 0 ? std(amtWindow) / amtMean : 2;
       pattern_score = clamp(1 - 1.5 * gapCv, 0, 1) * clamp(1 - 1.5 * amtCv, 0, 1);
+    }
+
+    // merchants touched in the trailing 24h — structuring spreads the legs
+    let merchant_spread_24h = 0;
+    {
+      const seen = new Set<string>([tx.merchant_id]);
+      for (let i = cs.ts.length - 1; i >= 0; i--) {
+        if (now - cs.ts[i] > 24 * HOUR) break;
+        seen.add(cs.merchantSeq[i]);
+      }
+      merchant_spread_24h = seen.size;
     }
 
     // graph burst: distinct OTHER young accounts paying this merchant in 24h
@@ -182,13 +222,19 @@ export function featurize(
         fan_out_24h,
         newcomer_count_48h,
         newcomer_burst_score,
+        geo_anomaly,
+        near_limit_repeat_24h,
+        merchant_spread_24h,
+        dormancy_h,
       },
     });
 
     // ---- absorb current tx ----
     cs.amounts.push(tx.amount);
     cs.ts.push(now);
+    cs.merchantSeq.push(tx.merchant_id);
     cs.devices.add(tx.device_id);
+    cs.countries.add(tx.country);
     const wasNewMerchant = new_merchant === 1;
     cs.merchants.add(tx.merchant_id);
     let mh = merchantHits.get(tx.merchant_id);

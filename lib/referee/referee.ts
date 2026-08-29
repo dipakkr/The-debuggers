@@ -3,7 +3,7 @@ import { buildWorld, generateLegitStream, World } from "@/lib/simulator/world";
 import { compileScenario } from "@/lib/simulator/scenario";
 import { featurize } from "@/lib/fraud/features";
 import { DetectorWeights, scoreFeaturized, ScoredTx } from "@/lib/fraud/detector";
-import { computeMetrics, attackSuccessRate } from "@/lib/metrics/metrics";
+import { computeMetrics, attackSuccessRate, prCurve, OperatingPoint } from "@/lib/metrics/metrics";
 
 export const EPOCH_START = Date.UTC(2026, 0, 5, 0, 0, 0);
 export const HORIZON_DAYS = 14;
@@ -74,6 +74,10 @@ const FN_FEATURES = [
   "pattern_score",
   "newcomer_count_48h",
   "newcomer_burst_score",
+  "geo_anomaly",
+  "near_limit_repeat_24h",
+  "merchant_spread_24h",
+  "dormancy_h",
 ] as const;
 
 function medianOf(xs: number[]): number {
@@ -82,9 +86,21 @@ function medianOf(xs: number[]): number {
   return s[Math.floor(s.length / 2)];
 }
 
+/** Minimal per-transaction record for the fraud rows, so paired before/after
+ *  tests (McNemar) can join on tx_id instead of assuming ordering. */
+export interface FraudRow {
+  tx_id: string;
+  scenario_id: string;
+  decision: string;
+  risk_score: number;
+}
+
 export interface EvalRun {
   metrics: MetricsResult;
   per_scenario: ScenarioOutcome[];
+  fraud_rows: FraudRow[];
+  /** precision/recall/F1 across the whole score range for this run */
+  operating_points: OperatingPoint[];
 }
 
 /**
@@ -145,22 +161,48 @@ export function refereeEvaluate(
     };
   });
 
-  return { metrics, per_scenario };
+  return {
+    metrics,
+    per_scenario,
+    operating_points: prCurve(evalSet, 20),
+    fraud_rows: evalSet
+      .filter((s) => s.tx.ground_truth === "fraud")
+      .map((s) => ({
+        tx_id: s.tx.tx_id,
+        scenario_id: s.tx.scenario_id,
+        decision: s.out.decision,
+        risk_score: s.out.risk_score,
+      })),
+  };
 }
 
-/** Byte-exact replay of one scenario under two defense configs. */
+export interface ReplayDiffRow {
+  scenario_id: string;
+  tx_id: string;
+  amount: number;
+  before: string;
+  after: string;
+}
+
+/**
+ * Byte-exact replay of ONE scenario under two defense configs.
+ * `legitSeed` must match the pool the caller is reasoning about, otherwise the
+ * returned metrics describe a different legitimate population than the run
+ * they are compared against.
+ */
 export function replayPair(
   model: DetectorWeights,
   beforeDefense: DefenseConfig | null,
   afterDefense: DefenseConfig | null,
-  spec: ScenarioSpec
+  spec: ScenarioSpec,
+  opts?: { legitSeed?: number }
 ): {
   before: EvalRun;
   after: EvalRun;
-  diff: { tx_id: string; amount: number; before: string; after: string }[];
+  diff: ReplayDiffRow[];
 } {
   const w = world();
-  const backdropRows = backdrop(SEEDS.blue_dev);
+  const backdropRows = backdrop(opts?.legitSeed ?? SEEDS.blue_dev);
   const c = compileScenario(spec.genome, spec.seed, spec.scenario_id, w, EVAL_EPOCH_START, HORIZON_DAYS);
   const all = [...backdropRows, ...c.transactions].sort(
     (a, b) => a.ts_ms - b.ts_ms || a.tx_id.localeCompare(b.tx_id)
@@ -174,17 +216,40 @@ export function replayPair(
   const beforeRun = runWith(beforeDefense);
   const afterRun = runWith(afterDefense);
 
-  const before: EvalRun = { metrics: beforeRun.metrics, per_scenario: perScenarioOf(spec, beforeRun.evalSet) };
-  const after: EvalRun = { metrics: afterRun.metrics, per_scenario: perScenarioOf(spec, afterRun.evalSet) };
+  const fraudRowsOf = (rows: ScoredTx[]): FraudRow[] =>
+    rows
+      .filter((s) => s.tx.ground_truth === "fraud")
+      .map((s) => ({
+        tx_id: s.tx.tx_id,
+        scenario_id: s.tx.scenario_id,
+        decision: s.out.decision,
+        risk_score: s.out.risk_score,
+      }));
+  const before: EvalRun = {
+    metrics: beforeRun.metrics,
+    per_scenario: perScenarioOf(spec, beforeRun.evalSet),
+    operating_points: prCurve(beforeRun.evalSet, 20),
+    fraud_rows: fraudRowsOf(beforeRun.evalSet),
+  };
+  const after: EvalRun = {
+    metrics: afterRun.metrics,
+    per_scenario: perScenarioOf(spec, afterRun.evalSet),
+    operating_points: prCurve(afterRun.evalSet, 20),
+    fraud_rows: fraudRowsOf(afterRun.evalSet),
+  };
 
   const bRows = beforeRun.evalSet.filter((s) => s.tx.scenario_id === spec.scenario_id && s.tx.ground_truth === "fraud");
   const aRows = afterRun.evalSet.filter((s) => s.tx.scenario_id === spec.scenario_id && s.tx.ground_truth === "fraud");
-  const diff = bRows
-    .map((rowB, i) => ({
+  // pair by transaction id, not by index: identical inputs give identical
+  // ordering, but an id join makes that assumption explicit and safe.
+  const afterById = new Map(aRows.map((r) => [r.tx.tx_id, r.out.decision]));
+  const diff: ReplayDiffRow[] = bRows
+    .map((rowB) => ({
+      scenario_id: spec.scenario_id,
       tx_id: rowB.tx.tx_id,
       amount: rowB.tx.amount,
-      before: rowB.out.decision,
-      after: aRows[i]?.out.decision ?? "?",
+      before: rowB.out.decision as string,
+      after: (afterById.get(rowB.tx.tx_id) ?? "?") as string,
     }))
     .filter((r) => r.before !== r.after);
 

@@ -4,6 +4,8 @@ export const ATTACK_FAMILIES = [
   "card_testing_drain",
   "low_and_slow",
   "mule_fanout",
+  "account_takeover",
+  "transaction_splitting",
 ] as const;
 export type AttackFamily = (typeof ATTACK_FAMILIES)[number];
 
@@ -55,6 +57,29 @@ export const GenomeSchema = z.object({
     regularity: z.number().min(0).max(1),
     drain_after_probe: z.boolean(),
   }),
+  /** Account-takeover dimensions. Defaulted so older genomes and LLM output
+   *  that omit them still parse; every value stays inside hard bounds. */
+  takeover: z
+    .object({
+      /** ride an EXISTING legitimate customer's account instead of minting a
+       *  fresh synthetic identity — the defining property of real ATO */
+      victim_reuse: z.boolean(),
+      /** small balance-probing payments before the cash-out */
+      recon_tx_count: z.number().int().min(0).max(10),
+      /** hours of dormancy between takeover and cash-out */
+      dwell_hours: z.number().min(0).max(168),
+    })
+    .default({ victim_reuse: false, recon_tx_count: 0, dwell_hours: 0 }),
+  /** Structuring dimensions: decompose one large value into many small ones. */
+  split: z
+    .object({
+      count: z.number().int().min(1).max(20),
+      /** distinct merchants the split is spread across */
+      merchant_spread: z.number().int().min(1).max(8),
+      /** each leg is placed this far below the ceiling it is dodging */
+      ceiling_ratio: z.number().min(0.5).max(0.99),
+    })
+    .default({ count: 1, merchant_spread: 1, ceiling_ratio: 0.9 }),
 });
 export type Genome = z.infer<typeof GenomeSchema>;
 
@@ -90,6 +115,15 @@ export interface TxFeatures {
   newcomer_count_48h: number;
   /** convergence × identity-batch coherence × ticket homogeneity ∈ [0,1] */
   newcomer_burst_score: number;
+  /** 1 when this payment's country was never seen before for this customer */
+  geo_anomaly: number;
+  /** count of trailing-24h payments by this customer that sit in a narrow band
+   *  just under a round reporting/limit ceiling — the structuring tell */
+  near_limit_repeat_24h: number;
+  /** distinct merchants this customer paid in the trailing 24h */
+  merchant_spread_24h: number;
+  /** dormancy (hours since previous payment) capped at one week */
+  dormancy_h: number;
 }
 
 export type TxKind = "backdrop" | "warmup" | "attack";
@@ -121,6 +155,10 @@ export const DefenseConfigSchema = z
     escalation_weight: z.number().min(0).max(0.6),
     pattern_weight: z.number().min(0).max(0.6),
     graph_weight: z.number().min(0).max(0.6),
+    /** repeated near-ceiling legs sprayed across storefronts (structuring) */
+    structuring_weight: z.number().min(0).max(0.6).default(0),
+    /** unfamiliar device + geography after dormancy on an established account */
+    takeover_weight: z.number().min(0).max(0.6).default(0),
   })
   .strict();
 export type DefenseConfig = z.infer<typeof DefenseConfigSchema>;
@@ -131,6 +169,8 @@ export const V1_AS_DEFENSE = (thresholdBlock: number): DefenseConfig => ({
   escalation_weight: 0,
   pattern_weight: 0,
   graph_weight: 0,
+  structuring_weight: 0,
+  takeover_weight: 0,
 });
 
 export const ProposalSchema = z.object({
@@ -162,9 +202,9 @@ export interface Versions {
 }
 
 export const VERSIONS: Versions = {
-  dataset_version: "synth-pop-1.2.0",
-  attack_version: "genome-1.1.0",
-  detector_version: "risk-engine-1.0.0",
+  dataset_version: "synth-pop-1.3.0",
+  attack_version: "genome-1.2.0",
+  detector_version: "risk-engine-1.1.0",
   defense_version: "risk-engine-2.0.0",
   reasoning_version: "demo-policy-v1",
 };
@@ -177,7 +217,7 @@ export function versionStamp(
     ...VERSIONS,
     defense_version: defenseVersion,
     reasoning_version:
-      mode === "live" ? process.env.ARENA_MODEL ?? "gpt-4o-mini" : "demo-policy-v1",
+      mode === "live" ? process.env.ARENA_MODEL ?? "gpt-5" : "demo-policy-v1",
   };
 }
 
@@ -196,6 +236,9 @@ export interface ExperimentRow {
 
 export interface MetricsResult {
   fraud_recall: number;
+  /** recall counting a manual-review hold as a catch (see docs/methodology.md) */
+  recall_with_review: number;
+  roc_auc: number;
   precision: number;
   f1: number;
   fpr: number;

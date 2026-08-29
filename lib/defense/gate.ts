@@ -1,6 +1,7 @@
 import {
   DefenseConfig,
   DefenseConfigSchema,
+  MetricsResult,
   Proposal,
   V1_AS_DEFENSE,
   versionStamp,
@@ -9,6 +10,7 @@ import { ArenaState } from "@/lib/state";
 import { DetectorWeights } from "@/lib/fraud/detector";
 import {
   EvalRun,
+  ReplayDiffRow,
   ScenarioSpec,
   SEEDS,
   gateDecision,
@@ -16,6 +18,7 @@ import {
   refereeEvaluate,
 } from "@/lib/referee/referee";
 import { appendExperiment, makeExperimentId } from "@/lib/referee/ledger";
+import { Interval, McNemarResult, mcnemar, wilsonInterval } from "@/lib/metrics/stats";
 
 export interface GateResult {
   accepted: boolean;
@@ -24,9 +27,23 @@ export interface GateResult {
   finalBase: EvalRun | null;
   finalCand: EvalRun | null;
   survival: { scenario_id: string; base_success: number; cand_success: number }[];
-  replayBefore: EvalRun | null;
-  replayAfter: EvalRun | null;
-  replayDiff: { tx_id: string; amount: number; before: string; after: string }[];
+  /** Exact replay of the ORIGINAL discovery scenario — same stored genome,
+   *  same stored seed, same legitimate pool — rescored under v1 vs candidate. */
+  replayDiscovery: {
+    scenario_id: string;
+    seed: number;
+    changed: ReplayDiffRow[];
+    before: MetricsResult;
+    after: MetricsResult;
+  } | null;
+  /** Replays of the fresh-seed recompiles, reported separately because they
+   *  are a GENERALISATION check, not evidence about the stored scenario. */
+  replayFresh: { scenario_id: string; seed: number; changed: ReplayDiffRow[] }[];
+  replayDiff: ReplayDiffRow[];
+  /** Paired significance of the recall change on the held-out fraud rows. */
+  significance: McNemarResult | null;
+  /** 95% Wilson intervals around the before/after held-out recall. */
+  recallInterval: { before: Interval; after: Interval } | null;
 }
 
 /**
@@ -60,8 +77,10 @@ export function runDefenseGate(
       finalBase: null,
       finalCand: null,
       survival: [],
-      replayBefore: null,
-      replayAfter: null,
+      significance: null,
+      recallInterval: null,
+      replayDiscovery: null,
+      replayFresh: [],
       replayDiff: [],
     };
   }
@@ -110,6 +129,31 @@ export function runDefenseGate(
   const candCaught = 1 - survival.reduce((s, x) => s + x.cand_success, 0) / Math.max(1, survival.length);
   const threatRecallGain = candCaught - baseCaught;
 
+  // Paired significance. Base and candidate scored the SAME transactions, so
+  // join on tx_id and count only the rows whose decision actually flipped.
+  const candById = new Map(candRun.fraud_rows.map((r) => [r.tx_id, r.decision]));
+  let caughtBeforeOnly = 0;
+  let caughtAfterOnly = 0;
+  for (const row of baseRun.fraud_rows) {
+    const after = candById.get(row.tx_id);
+    if (after === undefined) continue;
+    const beforeCaught = row.decision !== "allow";
+    const afterCaught = after !== "allow";
+    if (beforeCaught && !afterCaught) caughtBeforeOnly++;
+    if (!beforeCaught && afterCaught) caughtAfterOnly++;
+  }
+  const significance = mcnemar(caughtBeforeOnly, caughtAfterOnly);
+  const recallInterval = {
+    before: wilsonInterval(
+      Math.round(baseRun.metrics.fraud_recall * baseRun.metrics.n_fraud),
+      baseRun.metrics.n_fraud
+    ),
+    after: wilsonInterval(
+      Math.round(candRun.metrics.fraud_recall * candRun.metrics.n_fraud),
+      candRun.metrics.n_fraud
+    ),
+  };
+
   const verdict = gateDecision(
     threatRecallGain,
     candRun.metrics.fpr - baseRun.metrics.fpr,
@@ -117,20 +161,35 @@ export function runDefenseGate(
     Math.max(1, improvable.length)
   );
 
-  // Exact replay: the ORIGINAL discovery scenario plus fresh-seed recompiles
-  // of the same genome, rescored under v1 vs candidate — the causal
-  // BEFORE/AFTER evidence chain.
-  const replaySpecs: ScenarioSpec[] = [
-    { genome: blind.scenario.genome, seed: blind.scenario.seed, scenario_id: blind.scenario.scenario_id },
-    ...freshSpecs,
+  // Exact replay, reported in two clearly separated parts.
+  //  (a) the ORIGINAL discovery scenario — stored genome, stored seed. This is
+  //      the causal "the very attack we found is now handled differently" claim.
+  //  (b) the fresh-seed recompiles — a generalisation check. Conflating the two
+  //      lets a diff made up entirely of (b) be reported as evidence about (a).
+  const discoverySpec: ScenarioSpec = {
+    genome: blind.scenario.genome,
+    seed: blind.scenario.seed,
+    scenario_id: blind.scenario.scenario_id,
+  };
+  const discoveryReplay = replayPair(model, null, candidate, discoverySpec, {
+    legitSeed: SEEDS.final_test,
+  });
+  const replayDiscovery = {
+    scenario_id: discoverySpec.scenario_id,
+    seed: discoverySpec.seed,
+    changed: discoveryReplay.diff,
+    before: discoveryReplay.before.metrics,
+    after: discoveryReplay.after.metrics,
+  };
+  const replayFresh = freshSpecs.map((spec) => ({
+    scenario_id: spec.scenario_id,
+    seed: spec.seed,
+    changed: replayPair(model, null, candidate, spec, { legitSeed: SEEDS.final_test }).diff,
+  }));
+  const diffs: ReplayDiffRow[] = [
+    ...replayDiscovery.changed,
+    ...replayFresh.flatMap((r) => r.changed),
   ];
-  const diffs: { tx_id: string; amount: number; before: string; after: string }[] = [];
-  for (const spec of replaySpecs) {
-    const rp = replayPair(model, null, candidate, spec);
-    diffs.push(...rp.diff);
-  }
-  const replayBeforeMetrics = baseRun.metrics;
-  const replayAfterMetrics = candRun.metrics;
 
   appendExperiment({
     experiment_id: makeExperimentId({
@@ -151,6 +210,10 @@ export function runDefenseGate(
       cand_fpr: candRun.metrics.fpr,
       survived: survived,
       improvable: improvable.length,
+      mcnemar_statistic: significance.statistic,
+      mcnemar_p_value: significance.p_value,
+      newly_caught: significance.after_only,
+      newly_missed: significance.before_only,
     },
     decision: verdict.accepted ? "ACCEPT" : "REJECT",
     notes: verdict.reasons.join("; ") || "all gates passed",
@@ -167,10 +230,13 @@ export function runDefenseGate(
     scenario_id: blind.scenario.scenario_id,
     seed: blind.scenario.seed,
     versions: versionStamp(state.mode),
+    // these come from the replay itself, on the replay's own legitimate pool —
+    // not from the gate run, which evaluates a different scenario set
     metrics: {
-      before_recall: replayBeforeMetrics.fraud_recall,
-      after_recall: replayAfterMetrics.fraud_recall,
-      changed_rows: diffs.length,
+      discovery_before_recall: replayDiscovery.before.fraud_recall,
+      discovery_after_recall: replayDiscovery.after.fraud_recall,
+      discovery_changed_rows: replayDiscovery.changed.length,
+      fresh_changed_rows: diffs.length - replayDiscovery.changed.length,
     },
     decision: "REPLAYED",
   });
@@ -192,8 +258,10 @@ export function runDefenseGate(
     finalBase: baseRun,
     finalCand: candRun,
     survival,
-    replayBefore: null,
-    replayAfter: null,
+    significance,
+    recallInterval,
+    replayDiscovery,
+    replayFresh,
     replayDiff: diffs,
   };
 }

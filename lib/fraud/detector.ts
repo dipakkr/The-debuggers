@@ -16,6 +16,7 @@ export const V1_FEATURES = [
   "new_device",
   "new_merchant",
   "probe_count_24h",
+  "near_limit_repeat_24h",
 ] as const;
 
 export const DetectorWeightsSchema = z
@@ -45,6 +46,13 @@ export const DetectorWeightsSchema = z
   });
 export type DetectorWeights = z.infer<typeof DetectorWeightsSchema>;
 
+/** Nanosecond clock. `performance.now()` resolution is coarser than one
+ *  scoring pass, which floors every per-row latency to zero. */
+const nowNs: () => number =
+  typeof process !== "undefined" && typeof process.hrtime?.bigint === "function"
+    ? () => Number(process.hrtime.bigint())
+    : () => performance.now() * 1e6;
+
 export interface ScoredTx {
   tx: Featurized["tx"];
   f: TxFeatures;
@@ -59,6 +67,8 @@ const REASON_LABELS: Record<string, string> = {
   new_device: "NEW_DEVICE",
   new_merchant: "NEW_MERCHANT",
   probe_count_24h: "CARD_TESTING_PROBES",
+  geo_anomaly: "GEO_ANOMALY",
+  near_limit_repeat_24h: "STRUCTURING_BAND",
 };
 
 export function v1Vector(f: TxFeatures): number[] {
@@ -79,7 +89,7 @@ export function scoreFeaturized(
   const latencies: number[] = [];
   for (const item of items) {
     let holdForReview = false;
-    const t0 = performance.now();
+    const t0 = nowNs();
     let logit = model.b;
     const contribs: [string, number][] = [];
     const x = v1Vector(item.f);
@@ -95,10 +105,28 @@ export function scoreFeaturized(
       // deadzone until coordination is strong, then steep ramp
       const b = item.f.newcomer_burst_score;
       const graphC = b > 0.5 ? defense.graph_weight * 4 * Math.min(1, (b - 0.5) * 4) : 0;
+
+      // structuring: repeated near-ceiling legs sprayed across storefronts.
+      // Either signal alone is ordinary; their product is the tell.
+      const strScore =
+        Math.min(1, Math.max(0, item.f.near_limit_repeat_24h - 1) / 3) *
+        Math.min(1, Math.max(0, item.f.merchant_spread_24h - 1) / 3);
+      const strC = defense.structuring_weight * 4 * strScore;
+
+      // takeover: an unfamiliar device in an unfamiliar country after a quiet
+      // spell on an otherwise established account.
+      const dormancyRamp = Math.min(1, item.f.dormancy_h / 48);
+      const takeScore =
+        item.f.new_device * (0.5 + 0.5 * item.f.geo_anomaly) * (0.4 + 0.6 * dormancyRamp) *
+        (item.f.young_account ? 0.3 : 1);
+      const takeC = defense.takeover_weight * 4 * takeScore;
+
       if (escC > 0.15) contribs.push(["SPEND_ESCALATION", escC]);
       if (patC > 0.15) contribs.push(["CAMOUFLAGE_PATTERN", patC]);
       if (graphC > 0.15) contribs.push(["NEWCOMER_BURST_GRAPH", graphC]);
-      logit += escC + patC + graphC;
+      if (strC > 0.15) contribs.push(["STRUCTURING_SPREAD", strC]);
+      if (takeC > 0.15) contribs.push(["TAKEOVER_SESSION", takeC]);
+      logit += escC + patC + graphC + strC + takeC;
 
       // hard policy rule: unmistakable coordinated newcomer burst => hold.
       // Calibrated so legitimate traffic essentially never trips it.
@@ -112,7 +140,9 @@ export function scoreFeaturized(
     const reasons = contribs.sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => r);
     let decision: Decision;
     const tBlock = defense?.threshold ?? model.threshold_block;
-    const tReview = Math.min(tBlock * 0.7, tBlock - 0.05);
+    // the review threshold is calibrated during training; when blue moves the
+    // block threshold, review tracks it down but never crosses it
+    const tReview = Math.min(model.threshold_review, Math.max(0, tBlock - 0.02));
     if (item.f.vel_1h >= 12 && item.tx.amount < 20) {
       decision = "block";
       reasons.unshift("RULE_MICRO_VELOCITY");
@@ -131,7 +161,24 @@ export function scoreFeaturized(
       reasons.unshift("NEWCOMER_BURST_HELD");
     }
 
-    const latency_ms = performance.now() - t0;
+    // Declines require corroboration. A wrongly declined genuine high-value
+    // purchase is the most expensive false positive a network can make, so an
+    // amount or odd-hour outlier on a familiar device, with no velocity, probe,
+    // structuring or graph support, is held for an analyst rather than refused.
+    const corroborated =
+      item.f.new_device === 1 ||
+      item.f.vel_1h >= 3 ||
+      item.f.vel_24h >= 6 ||
+      item.f.probe_count_24h >= 2 ||
+      item.f.near_limit_repeat_24h >= 3 ||
+      item.f.young_account === 1 ||
+      item.f.newcomer_burst_score >= 0.5;
+    if (decision === "block" && !corroborated) {
+      decision = "review";
+      reasons.unshift("UNCORROBORATED_HELD");
+    }
+
+    const latency_ms = (nowNs() - t0) / 1e6;
     latencies.push(latency_ms);
     scored.push({
       tx: item.tx,
@@ -140,7 +187,7 @@ export function scoreFeaturized(
         risk_score: Math.round(risk * 10000) / 10000,
         decision,
         reason_codes: reasons.length ? reasons : ["LOW_RISK"],
-        latency_ms: Math.round(latency_ms * 1000) / 1000,
+        latency_ms: Math.round(latency_ms * 1e6) / 1e6,
       },
     });
   }
@@ -148,7 +195,7 @@ export function scoreFeaturized(
   const q = (p: number) => latencies[Math.floor(p * (latencies.length - 1))] ?? 0;
   return {
     scored,
-    p50_latency_ms: Math.round(q(0.5) * 1000) / 1000,
-    p95_latency_ms: Math.round(q(0.95) * 1000) / 1000,
+    p50_latency_ms: Math.round(q(0.5) * 1e6) / 1e6,
+    p95_latency_ms: Math.round(q(0.95) * 1e6) / 1e6,
   };
 }

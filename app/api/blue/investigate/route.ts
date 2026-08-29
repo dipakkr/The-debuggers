@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { arena } from "@/lib/state";
+import { sessionArena } from "@/lib/session";
 import { loadModel } from "@/lib/mutations/engine";
 import { investigate } from "@/lib/defense/investigator";
 import { serializeState } from "@/lib/serialize";
@@ -7,7 +7,7 @@ import { serializeState } from "@/lib/serialize";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const state = arena();
+  const { state } = await sessionArena();
   if (!state.blindSpotScenarioId) {
     return NextResponse.json({ error: "no blind spot to investigate" }, { status: 400 });
   }
