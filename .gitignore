@@ -12,3 +12,5 @@ __pycache__/
 .worktrees/
 CLAUDE_RESUME.md
 .codex-checkpoint.md
+.vercel
+.env*

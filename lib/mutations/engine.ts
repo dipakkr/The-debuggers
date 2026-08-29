@@ -5,8 +5,7 @@ import {
   ScenarioSchema,
   versionStamp,
 } from "@/lib/contracts/genome";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import detectorV1 from "@/data/models/detector-v1.json";
 import {
   DetectorWeightsSchema,
   type DetectorWeights,
@@ -25,14 +24,22 @@ function nextScenarioId(): string {
 }
 
 let modelCache: DetectorWeights | null = null;
+
+/**
+ * The trained detector.
+ *
+ * Imported as a MODULE rather than read from `process.cwd()` at runtime. A
+ * runtime-constructed path is invisible to a bundler's static tracer, so on a
+ * serverless target the artifact is simply not in the function bundle and the
+ * first request dies with ENOENT — verified against a real Vercel build, whose
+ * function bundle contained five files and no `data/` directory at all. A
+ * static import is included by construction on every host.
+ *
+ * The schema parse is kept: the artifact is still validated on load, so a
+ * malformed or hand-edited model fails loudly instead of scoring silently.
+ */
 export function loadModel(): DetectorWeights {
-  if (!modelCache) {
-    modelCache = DetectorWeightsSchema.parse(
-      JSON.parse(
-        readFileSync(path.join(process.cwd(), "data/models/detector-v1.json"), "utf8")
-      )
-    );
-  }
+  if (!modelCache) modelCache = DetectorWeightsSchema.parse(detectorV1);
   return modelCache;
 }
 
