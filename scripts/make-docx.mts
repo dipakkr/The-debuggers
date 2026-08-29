@@ -142,8 +142,7 @@ const MEMBERS: Array<[string, string]> = [
   ["Deepak Kumar", "dipakkr.co@gmail.com"],
   ["Naman Goyal", "namangoyal21197@gmail.com"],
 ];
-const webUrl =
-  "https://adversarial-fraud-arena-production.up.railway.app";
+const webUrl = "https://adversarial-fraud-arena.vercel.app";
 
 const pct = (value: number): string => `${(value * 100).toFixed(2)}%`;
 const rate = (value: number): string => value.toLocaleString("en-US");

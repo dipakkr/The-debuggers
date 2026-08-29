@@ -25,7 +25,7 @@ all against synthetic traffic, with a deterministic referee that neither AI can 
 | Naman Goyal | namangoyal21197@gmail.com |
 
 - **Repository:** https://github.com/dipakkr/The-debuggers
-- **Working prototype:** https://adversarial-fraud-arena-production.up.railway.app
+- **Working prototype:** https://adversarial-fraud-arena.vercel.app
 - **Solution walkthrough:** [`The debuggers.docx`](./The%20debuggers.docx)
 
 ## The three pillars
@@ -74,6 +74,10 @@ npm run dev
 
 Open `http://localhost:3000`, then: **Run red team** (twice) → **Investigate** →
 **Validate at the gate**. The whole loop takes about a minute.
+
+The same loop runs on the deployed prototype and reproduces the committed
+evidence exactly: blind spot `AF-1013`, recall-with-review 44.44% → 70.00%,
+FPR 0.187% → 0.237%, 23 transactions newly caught and 0 newly missed.
 
 ## Demo mode and live mode
 
