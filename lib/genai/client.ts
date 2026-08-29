@@ -23,7 +23,20 @@ function cfg() {
   ).href.replace(/\/$/, "");
   const key = process.env.OPENAI_API_KEY;
   const model = process.env.ARENA_MODEL ?? "gpt-5";
-  return { base, key, model };
+  // Temperature is OPT-IN. Current reasoning models reject any non-default
+  // value outright ("Unsupported value: 'temperature' does not support 0.7"),
+  // and because a provider failure falls back to the deterministic policy,
+  // hardcoding it made live mode a silent no-op: every call 400'd and the
+  // arena quietly ran the expert policy instead.
+  const raw = process.env.ARENA_TEMPERATURE;
+  const temperature = raw === undefined || raw === "" ? undefined : Number(raw);
+  return { base, key, model, temperature };
+}
+
+/** Last provider failure, surfaced so a silent fallback is never invisible. */
+let lastError: string | null = null;
+export function lastProviderError(): string | null {
+  return lastError;
 }
 
 export function assertSafeProviderUrl(value: string): URL {
@@ -44,7 +57,7 @@ async function once(
   user: string,
   timeoutMs: number
 ): Promise<string> {
-  const { base, key, model } = cfg();
+  const { base, key, model, temperature } = cfg();
   if (!key) throw new Error("OPENAI_API_KEY not configured");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -57,7 +70,7 @@ async function once(
       },
       body: JSON.stringify({
         model,
-        temperature: 0.7,
+        ...(Number.isFinite(temperature) ? { temperature } : {}),
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
@@ -65,7 +78,11 @@ async function once(
       }),
       signal: ctrl.signal,
     });
-    if (!res.ok) throw new Error(`llm http ${res.status}`);
+    if (!res.ok) {
+      // carry the provider's own message; "http 400" alone hides the cause
+      const detail = await res.text().catch(() => "");
+      throw new Error(`llm http ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`);
+    }
     const json = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
@@ -81,16 +98,20 @@ async function once(
 export async function chatJson(
   system: string,
   user: string,
-  timeoutMs = 15_000
+  timeoutMs = 60_000
 ): Promise<LlmResult> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const text = await once(system, user, attempt === 0 ? timeoutMs : 10_000);
+      // the retry gets the SAME budget: halving it guaranteed a second failure
+      // on any provider slow enough to have timed out the first time
+      const text = await once(system, user, timeoutMs);
       // strip markdown fences if the provider added them
       const cleaned = text.replace(/```(json)?/gi, "").trim();
+      lastError = null;
       return { ok: true, text: cleaned, source: "llm" };
     } catch (e) {
       if (attempt === 1) {
+        lastError = String(e);
         return { ok: false, error: String(e), source: "fallback" };
       }
     }
@@ -119,7 +140,7 @@ export async function chatStructured<T>(
   system: string,
   user: string,
   schema: ZodType<T, ZodTypeDef, unknown>,
-  timeoutMs = 15_000,
+  timeoutMs = 60_000,
   complete: Completion = chatJson
 ): Promise<
   | { ok: true; data: T; source: "llm" | "repair" }
@@ -139,7 +160,7 @@ export async function chatStructured<T>(
   const repaired = await complete(
     `${system}\nRepair the prior output. Return only JSON that matches the required schema.`,
     `<invalid_output>${first.text ?? ""}</invalid_output>\n${user}`,
-    Math.min(timeoutMs, 10_000)
+    timeoutMs
   );
   const repairedData = parse(repaired);
   return repairedData

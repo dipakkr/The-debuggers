@@ -27,6 +27,13 @@ export interface ArenaState {
   /** precision/recall across the score range on the baseline pool */
   baselineOperatingPoints: OperatingPoint[];
   lastSearchMetrics: MetricsResult | null; // detector under active attack (search pool)
+  /** Whether the LAST generation was actually driven by the model or by the
+   *  deterministic policy. A provider failure falls back silently by design;
+   *  leaving that invisible would let the UI imply live reasoning that never
+   *  happened. */
+  reasoningSource: "llm" | "policy" | null;
+  /** Why the fallback happened, when it did. */
+  reasoningNote: string | null;
   defenseProposal: unknown | null;
   defenseConfig: unknown | null;
   defenseAccepted: boolean | null;
@@ -48,6 +55,8 @@ export function freshState(mode: "demo" | "live" = "demo"): ArenaState {
     baselineRun: null,
     baselineOperatingPoints: [],
     lastSearchMetrics: null,
+    reasoningSource: null,
+    reasoningNote: null,
     defenseProposal: null,
     defenseConfig: null,
     defenseAccepted: null,

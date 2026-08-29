@@ -1,8 +1,9 @@
 import { ArenaState } from "@/lib/state";
-import { ATTACK_FAMILIES, VERSIONS } from "@/lib/contracts/genome";
+import { ATTACK_FAMILIES, versionStamp } from "@/lib/contracts/genome";
 import { isNovel, noveltyScore, NOVELTY_TAU } from "@/lib/attacks/templates";
 import { GATE_BUDGETS } from "@/lib/referee/referee";
 import { loadModel } from "@/lib/mutations/engine";
+import { liveModeAvailable } from "@/lib/genai/client";
 
 /** Client-facing snapshot of the arena — plain JSON, no Maps. */
 export function serializeState(state: ArenaState) {
@@ -35,6 +36,8 @@ export function serializeState(state: ArenaState) {
 
   return {
     mode: state.mode,
+    /** whether a provider key is configured, so the UI only offers a mode it can honour */
+    liveAvailable: liveModeAvailable(),
     generation: state.generation,
     attempts,
     childrenOf: Object.fromEntries(state.childrenOf),
@@ -53,7 +56,11 @@ export function serializeState(state: ArenaState) {
     gateBudgets: GATE_BUDGETS,
     families: [...ATTACK_FAMILIES],
     noveltyTau: NOVELTY_TAU,
-    versions: VERSIONS,
+    // stamp the ACTUAL reasoning layer, not the constant: in live mode this is
+    // the model id, and it must not claim demo-policy-v1
+    versions: versionStamp(state.mode),
+    reasoningSource: state.reasoningSource,
+    reasoningNote: state.reasoningNote,
     detector: {
       version: model.version,
       feature_names: model.feature_names,

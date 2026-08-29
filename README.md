@@ -100,15 +100,38 @@ benchmark; `npm run docx` rebuilds the solution walkthrough.
 
 ### Optional: live mode
 
-Demo mode swaps in a deterministic expert policy for the reasoning layer.
-To run the LLM path instead:
+Demo mode runs a deterministic expert policy as the reasoning layer. To hand
+that layer to a model instead, put a key in `.env` (already gitignored):
 
 ```bash
-OPENAI_API_KEY=<key> OPENAI_BASE_URL=https://api.openai.com/v1 ARENA_MODEL=<model> npm run dev
+OPENAI_API_KEY=sk-...
+# optional
+OPENAI_BASE_URL=https://api.openai.com/v1   # any OpenAI-compatible endpoint
+ARENA_MODEL=gpt-5
+ARENA_TIMEOUT_MS=60000                       # reasoning models need 10-20s per call
+ARENA_TEMPERATURE=                           # leave unset: current models reject non-default values
 ```
 
-The simulator, detector, Referee, gate, metrics and replay are real code in
-both modes. Never commit a real API key.
+Then click the **Deterministic mode** pill in the header to switch. The pill is
+disabled when no key is configured, and the header reports which layer actually
+ran — `Model drove this generation` or `Fell back to policy`, with the provider
+error attached.
+
+That last part matters. A provider failure falls back to the deterministic
+policy by design, so without the indicator a failed live run is
+indistinguishable from a successful one. Two failures found exactly that way:
+a hardcoded `temperature: 0.7` that current reasoning models reject outright,
+and a strategist prompt phrased as "reduce detection" that models correctly
+refuse as evasion assistance. Both are fixed; the prompt now states what the
+system actually is — a coverage test against a detector the operator owns.
+
+Live mode is slower (roughly two minutes per generation against `gpt-5`, with
+the per-parent calls issued concurrently) and is **not reproducible**, so a
+cursor-rebuilt session is not replayed in live mode. Run it on a single process
+— local, or a container. The simulator, detector, Referee, gate, metrics and
+replay are real code in both modes.
+
+Never commit a real API key. `.env` and `.env.*` are gitignored.
 
 The same loop runs on the deployed prototype and reproduces the committed
 evidence exactly: blind spot `AF-1013`, recall-with-review 44.44% → 70.00%,

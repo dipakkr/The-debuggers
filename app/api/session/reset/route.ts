@@ -28,10 +28,11 @@ export async function POST(req: Request) {
   const state = freshState(mode);
   // Replace this session's arena contents in place so every route that later
   // resolves the same cookie sees the new run.
-  const { state: current, save } = await sessionArena();
+  const { state: current, save, saveMode } = await sessionArena();
   Object.assign(current, state);
   // clear the cursor too, or the next request rebuilds what we just discarded
   save({ generations: 0, investigated: false, validated: false });
+  saveMode(mode);
   resetArena(current);
   return NextResponse.json(serializeState(current));
 }

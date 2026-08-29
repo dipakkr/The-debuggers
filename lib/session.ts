@@ -7,6 +7,7 @@ import { ProposalSchema } from "@/lib/contracts/genome";
 
 export const SESSION_COOKIE = "arena_session";
 export const PROGRESS_COOKIE = "arena_progress";
+export const MODE_COOKIE = "arena_mode";
 
 /**
  * How far through the loop this browser session has driven the arena.
@@ -54,6 +55,17 @@ export function decodeProgress(raw: string | undefined): ArenaProgress {
 export async function rehydrate(state: ArenaState, progress: ArenaProgress): Promise<void> {
   if (!state.baselineRun) resetArena(state);
 
+  // LIVE mode cannot be rebuilt from a cursor. Replaying a generation re-asks
+  // the model, and a model is not a pure function of its inputs — the rebuilt
+  // arena would differ from the one the cursor describes, and the UI would
+  // show numbers that never happened. Rebuilding the deterministic baseline is
+  // still correct and still worth doing; replaying the SEARCH is not.
+  //
+  // In practice this only bites on a multi-instance host. A single-process
+  // deployment (local dev, a container) keeps the state in the instance and
+  // never reaches this branch.
+  if (state.mode === "live") return;
+
   while (state.generation < progress.generations) {
     await runGeneration(state);
   }
@@ -89,6 +101,8 @@ export interface SessionHandle {
   progress: ArenaProgress;
   /** Persist an advanced cursor. Silently no-ops where cookies are read-only. */
   save: (next: Partial<ArenaProgress>) => void;
+  /** Persist the reasoning mode alongside the cursor. */
+  saveMode: (mode: "demo" | "live") => void;
 }
 
 export async function sessionArena(): Promise<SessionHandle> {
@@ -119,15 +133,26 @@ export async function sessionArena(): Promise<SessionHandle> {
       sessionId: DEFAULT_SESSION,
       progress,
       save: () => undefined,
+      saveMode: () => undefined,
     };
   }
 
+  const state = arena(sessionId);
+  // The mode lives in a cookie too, or an instance that has never served this
+  // session would rebuild it as demo and quietly ignore the configured key.
+  const cookieMode = jar.get(MODE_COOKIE)?.value === "live" ? "live" : "demo";
+  state.mode = cookieMode;
+
   return {
-    state: arena(sessionId),
+    state,
     sessionId,
     progress,
     save: (next) => {
       write(PROGRESS_COOKIE, encode({ ...progress, ...next }));
+    },
+    saveMode: (mode) => {
+      state.mode = mode;
+      write(MODE_COOKIE, mode);
     },
   };
 }

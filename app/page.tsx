@@ -83,6 +83,9 @@ interface Budgets {
 
 interface Snapshot {
   mode: "demo" | "live";
+  liveAvailable: boolean;
+  reasoningSource: "llm" | "policy" | null;
+  reasoningNote: string | null;
   generation: number;
   attempts: Attempt[];
   beam: string[];
@@ -233,14 +236,14 @@ export default function Page() {
   );
 
   const runGeneration = () => call("Evolving attacks", "/api/session/generate", { method: "POST" });
-  const reset = async () => {
+  const reset = async (mode: "demo" | "live" = snap?.mode ?? "demo") => {
     setGate(null);
     setProposalSource(null);
     setSelected(null);
     await call("Resetting arena", "/api/session/reset", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode: "demo" }),
+      body: JSON.stringify({ mode }),
     });
   };
   const investigate = async () => {
@@ -310,9 +313,34 @@ export default function Page() {
           <h1>Adversarial Fraud Arena</h1>
           <span className="sub">Mastercard Innovation Challenge 2026 · Team The debuggers</span>
           <span className="spacer" />
+          {snap?.mode === "live" && snap.reasoningSource === "policy" && (
+            <span className="pill" style={{ color: "var(--review)", borderColor: "var(--review)", background: "var(--review-bg)" }}
+              title={snap.reasoningNote ?? "the provider call failed; the deterministic policy ran instead"}>
+              Fell back to policy
+            </span>
+          )}
+          {snap?.mode === "live" && snap.reasoningSource === "llm" && (
+            <span className="pill" style={{ color: "var(--allow)", borderColor: "var(--allow)", background: "var(--allow-bg)" }}>
+              Model drove this generation
+            </span>
+          )}
           <span className="pill synthetic">Synthetic environment</span>
-          <span className="pill mode">{snap?.mode === "live" ? "Live reasoning" : "Deterministic mode"}</span>
-          <button className="btn" onClick={reset} disabled={!!busy}>Reset</button>
+          <button
+            className="pill mode"
+            type="button"
+            onClick={() => void reset(snap?.mode === "live" ? "demo" : "live")}
+            disabled={!!busy || !snap?.liveAvailable}
+            title={
+              snap?.liveAvailable
+                ? "Switch the reasoning layer between the deterministic expert policy and a live model. Resets the run."
+                : "Set OPENAI_API_KEY to enable live reasoning"
+            }
+            style={{ cursor: snap?.liveAvailable ? "pointer" : "not-allowed" }}
+          >
+            {snap?.mode === "live" ? "Live reasoning" : "Deterministic mode"}
+            {snap?.liveAvailable ? " · switch" : " · no key"}
+          </button>
+          <button className="btn" onClick={() => void reset()} disabled={!!busy}>Reset</button>
           <button className="btn primary" onClick={runGeneration} disabled={!!busy}>
             {busy === "Evolving attacks" ? "Evolving…" : "Run red team"}
           </button>
@@ -480,6 +508,13 @@ function CommandCentre({
         <div className="card">
           <header><h3>Referee activity</h3></header>
           <div className="body">
+            {snap.mode === "live" && snap.reasoningNote && (
+              <p className="note" style={{ marginBottom: 12, color: "var(--review)" }}>
+                <strong>Live reasoning unavailable.</strong> {snap.reasoningNote} — the
+                deterministic policy ran instead, so results are still valid but were not
+                model-driven.
+              </p>
+            )}
             {snap.log.length === 0 ? (
               <p className="note">No referee events yet this session.</p>
             ) : (

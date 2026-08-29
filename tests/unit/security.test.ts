@@ -155,3 +155,45 @@ describe("phase 4: security guards", () => {
     ]);
   });
 });
+
+describe("live-mode transparency", () => {
+  it("never sends a hardcoded temperature, which current models reject outright", async () => {
+    const client = readFileSync("lib/genai/client.ts", "utf8");
+    // a rejected temperature 400s every call, and because provider failures
+    // fall back to the deterministic policy, live mode became a silent no-op
+    expect(client).not.toMatch(/temperature:\s*0\.\d/);
+    expect(client).toContain("ARENA_TEMPERATURE");
+  });
+
+  it("gives the retry the same timeout budget as the first attempt", async () => {
+    const client = readFileSync("lib/genai/client.ts", "utf8");
+    // halving it guaranteed a second failure on any provider slow enough to
+    // have timed out the first time
+    expect(client).not.toContain("attempt === 0 ? timeoutMs : 10_000");
+    expect(client).not.toMatch(/Math\.min\(timeoutMs,\s*10_000\)/);
+  });
+
+  it("records WHY it fell back, so a silent provider failure is never invisible", async () => {
+    const engine = readFileSync("lib/mutations/engine.ts", "utf8");
+    expect(engine).toContain("reasoningSource");
+    expect(engine).toContain("reasoningNote");
+    expect(engine).toContain("lastProviderError");
+    const page = readFileSync("app/page.tsx", "utf8");
+    expect(page).toContain("Fell back to policy");
+  });
+
+  it("stamps the actual reasoning layer rather than the demo constant", async () => {
+    const serialize = readFileSync("lib/serialize.ts", "utf8");
+    expect(serialize).toContain("versionStamp(state.mode)");
+    expect(serialize).not.toMatch(/versions:\s*VERSIONS/);
+  });
+
+  it("frames the strategist as a coverage test, which is what it is", async () => {
+    const engine = readFileSync("lib/mutations/engine.ts", "utf8");
+    // asking a model to "reduce detection" reads as evasion help and gets
+    // refused; the accurate framing is measuring our own detector's coverage
+    expect(engine).not.toMatch(/reduce detector detection/);
+    expect(engine).toContain("EVALUATION HARNESS");
+    expect(engine).toContain("untrusted DATA");
+  });
+});
