@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-29T00:19:58.569Z",
-  "commit": "9eefa2b15f8c61a00cf4a251eec7b965a583cb98",
+  "generated_at": "2026-08-29T00:42:20.712Z",
+  "commit": "f9bf10074a0e5b051374877fc250329f096498ee",
   "mode": "demo",
   "seeds": {
     "train": 10101,
@@ -25,8 +25,8 @@
     "fnr": 0.2962962962962963,
     "review_rate": 0.015660478162147724,
     "average_precision": 0.5988799585758138,
-    "p50_latency_ms": 0.000459,
-    "p95_latency_ms": 0.001291,
+    "p50_latency_ms": 0.000334,
+    "p95_latency_ms": 0.001042,
     "n_legit": 29948,
     "n_fraud": 81
   },
@@ -200,6 +200,176 @@
       "false_positives": 0
     }
   ],
+  "held_out_operating_points_v1": [
+    {
+      "threshold": 0,
+      "precision": 0.0029962048072441575,
+      "recall": 1,
+      "f1": 0.005974508762612853,
+      "fpr": 1,
+      "false_positives": 29948
+    },
+    {
+      "threshold": 0.05,
+      "precision": 0.009499683343888538,
+      "recall": 0.6666666666666666,
+      "f1": 0.018732438339057137,
+      "fpr": 0.20889541872579137,
+      "false_positives": 6256
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.016102165463631316,
+      "recall": 0.6444444444444445,
+      "f1": 0.031419284940411706,
+      "fpr": 0.11833845331908642,
+      "false_positives": 3544
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.022444889779559118,
+      "recall": 0.6222222222222222,
+      "f1": 0.04332688588007737,
+      "fpr": 0.08144116468545479,
+      "false_positives": 2439
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.029427220178665267,
+      "recall": 0.6222222222222222,
+      "f1": 0.05619668840943301,
+      "fpr": 0.061673567517029515,
+      "false_positives": 1847
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.03711066931742876,
+      "recall": 0.6222222222222222,
+      "f1": 0.07004377736085053,
+      "fpr": 0.0485174302123681,
+      "false_positives": 1453
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.04395604395604396,
+      "recall": 0.6222222222222222,
+      "f1": 0.08211143695014664,
+      "fpr": 0.040670495525577666,
+      "false_positives": 1218
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.0521901211556384,
+      "recall": 0.6222222222222222,
+      "f1": 0.09630266552020636,
+      "fpr": 0.03395886202751436,
+      "false_positives": 1017
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.0581270182992465,
+      "recall": 0.6,
+      "f1": 0.10598626104023552,
+      "fpr": 0.029217310004006944,
+      "false_positives": 875
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.06273525721455459,
+      "recall": 0.5555555555555556,
+      "f1": 0.11273957158962798,
+      "fpr": 0.024943234940563642,
+      "false_positives": 747
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.06531204644412192,
+      "recall": 0.5,
+      "f1": 0.11553273427471117,
+      "fpr": 0.02150394016294911,
+      "false_positives": 644
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.07130730050933787,
+      "recall": 0.4666666666666667,
+      "f1": 0.12371134020618557,
+      "fpr": 0.018264992653933484,
+      "false_positives": 547
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.06903353057199212,
+      "recall": 0.3888888888888889,
+      "f1": 0.11725293132328309,
+      "fpr": 0.015760651796447176,
+      "false_positives": 472
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.07710280373831775,
+      "recall": 0.36666666666666664,
+      "f1": 0.1274131274131274,
+      "fpr": 0.013189528516094564,
+      "false_positives": 395
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.08426966292134831,
+      "recall": 0.3333333333333333,
+      "f1": 0.13452914798206278,
+      "fpr": 0.010885534927207159,
+      "false_positives": 326
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.08561643835616438,
+      "recall": 0.2777777777777778,
+      "f1": 0.13089005235602091,
+      "fpr": 0.008915453452651262,
+      "false_positives": 267
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.09954751131221719,
+      "recall": 0.24444444444444444,
+      "f1": 0.14147909967845657,
+      "fpr": 0.006644851075197009,
+      "false_positives": 199
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.10119047619047619,
+      "recall": 0.18888888888888888,
+      "f1": 0.13178294573643412,
+      "fpr": 0.00504207292640577,
+      "false_positives": 151
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.1111111111111111,
+      "recall": 0.13333333333333333,
+      "f1": 0.1212121212121212,
+      "fpr": 0.0032055562975824765,
+      "false_positives": 96
+    },
+    {
+      "threshold": 0.95,
+      "precision": 0.20754716981132076,
+      "recall": 0.12222222222222222,
+      "f1": 0.15384615384615383,
+      "fpr": 0.0014024308801923334,
+      "false_positives": 42
+    },
+    {
+      "threshold": 1,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "fpr": 0,
+      "false_positives": 0
+    }
+  ],
   "detector": {
     "version": "risk-engine-1.1.0",
     "feature_names": [
@@ -327,9 +497,16 @@
         "structuring_weight": 0,
         "takeover_weight": 0
       },
-      "expected_tradeoff": "Small deliberate FPR increase within the +1pt budget; recall gain concentrated on coordinated fan-out families.",
+      "expected_tradeoff": "A small deliberate false-positive increase, well inside the gate absolute and relative budgets; the recall gain concentrates on coordinated fan-out families.",
       "confidence": 0.72
     }
+  },
+  "gate_budgets": {
+    "min_threat_recall_gain": 0.05,
+    "max_fpr_delta_abs": 0.0025,
+    "max_fpr_delta_rel": 1,
+    "max_review_rate_delta": 0.005,
+    "min_survival_share": 0.8
   },
   "defense_gate": {
     "accepted": true,
@@ -344,23 +521,23 @@
       "fnr": 0.8555555555555555,
       "review_rate": 0.015693869373580874,
       "average_precision": 0.10505614198716959,
-      "p50_latency_ms": 0.000333,
-      "p95_latency_ms": 0.0005,
+      "p50_latency_ms": 0.00025,
+      "p95_latency_ms": 0.000417,
       "n_legit": 29948,
       "n_fraud": 90
     },
     "held_out_after": {
-      "fraud_recall": 0.24444444444444444,
-      "recall_with_review": 0.5333333333333333,
-      "roc_auc": 0.8572249306204829,
-      "precision": 0.23655913978494625,
-      "f1": 0.24043715846994534,
+      "fraud_recall": 0.2777777777777778,
+      "recall_with_review": 0.7,
+      "roc_auc": 0.8729904055919149,
+      "precision": 0.2604166666666667,
+      "f1": 0.2688172043010753,
       "fpr": 0.0023707760117537063,
-      "fnr": 0.7555555555555555,
-      "review_rate": 0.015860825430746628,
-      "average_precision": 0.13524739105233527,
-      "p50_latency_ms": 0.000375,
-      "p95_latency_ms": 0.000542,
+      "fnr": 0.7222222222222222,
+      "review_rate": 0.018264992653933484,
+      "average_precision": 0.15042959565080946,
+      "p50_latency_ms": 0.00025,
+      "p95_latency_ms": 0.000417,
       "n_legit": 29948,
       "n_fraud": 90
     },
@@ -368,34 +545,34 @@
       {
         "scenario_id": "AF-1013-H0",
         "base_success": 0.8333333333333334,
-        "cand_success": 0.75
+        "cand_success": 0.25
       },
       {
         "scenario_id": "AF-1013-H1",
         "base_success": 1,
-        "cand_success": 0.6666666666666666
+        "cand_success": 0.5
       },
       {
         "scenario_id": "AF-1013-H2",
         "base_success": 0.75,
-        "cand_success": 0.6666666666666666
+        "cand_success": 0.4166666666666667
       },
       {
         "scenario_id": "AF-1013-H3",
         "base_success": 0.4166666666666667,
-        "cand_success": 0.25
+        "cand_success": 0.16666666666666666
       },
       {
         "scenario_id": "AF-1013-H4",
         "base_success": 0.5833333333333334,
-        "cand_success": 0.5833333333333334
+        "cand_success": 0.3333333333333333
       }
     ],
     "significance": {
       "before_only": 0,
-      "after_only": 8,
+      "after_only": 23,
       "statistic": 0,
-      "p_value": 0.007813,
+      "p_value": 0,
       "significant_at_05": true
     },
     "recall_95ci": {
@@ -404,8 +581,8 @@
         "high": 0.23160062308793938
       },
       "after": {
-        "low": 0.16732663395366268,
-        "high": 0.3424856454618631
+        "low": 0.1957955914762625,
+        "high": 0.37795421671115115
       }
     }
   },
@@ -413,8 +590,22 @@
     "discovery": {
       "scenario_id": "AF-1013",
       "seed": 38058,
-      "changed_decisions": 3,
+      "changed_decisions": 5,
       "diff": [
+        {
+          "scenario_id": "AF-1013",
+          "tx_id": "AF-1013-A048",
+          "amount": 140.33,
+          "before": "allow",
+          "after": "review"
+        },
+        {
+          "scenario_id": "AF-1013",
+          "tx_id": "AF-1013-A031",
+          "amount": 157.27,
+          "before": "allow",
+          "after": "review"
+        },
         {
           "scenario_id": "AF-1013",
           "tx_id": "AF-1013-A039",
@@ -444,7 +635,7 @@
       {
         "scenario_id": "AF-1013-H0",
         "seed": 1482185,
-        "changed_decisions": 2,
+        "changed_decisions": 8,
         "diff": [
           {
             "scenario_id": "AF-1013-H0",
@@ -459,13 +650,55 @@
             "amount": 141.54,
             "before": "allow",
             "after": "block"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A039",
+            "amount": 157.69,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A024",
+            "amount": 184.53,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A016",
+            "amount": 124.72,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A040",
+            "amount": 139.22,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A048",
+            "amount": 143.99,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H0",
+            "tx_id": "AF-1013-H0-A007",
+            "amount": 153.86,
+            "before": "allow",
+            "after": "review"
           }
         ]
       },
       {
         "scenario_id": "AF-1013-H1",
         "seed": 1613256,
-        "changed_decisions": 4,
+        "changed_decisions": 6,
         "diff": [
           {
             "scenario_id": "AF-1013-H1",
@@ -494,13 +727,27 @@
             "amount": 180.31,
             "before": "allow",
             "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H1",
+            "tx_id": "AF-1013-H1-A016",
+            "amount": 182.54,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H1",
+            "tx_id": "AF-1013-H1-A048",
+            "amount": 180.96,
+            "before": "allow",
+            "after": "review"
           }
         ]
       },
       {
         "scenario_id": "AF-1013-H2",
         "seed": 1744327,
-        "changed_decisions": 3,
+        "changed_decisions": 6,
         "diff": [
           {
             "scenario_id": "AF-1013-H2",
@@ -522,18 +769,53 @@
             "amount": 158.52,
             "before": "allow",
             "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H2",
+            "tx_id": "AF-1013-H2-A024",
+            "amount": 154.46,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H2",
+            "tx_id": "AF-1013-H2-A007",
+            "amount": 133.47,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H2",
+            "tx_id": "AF-1013-H2-A048",
+            "amount": 179.94,
+            "before": "allow",
+            "after": "review"
           }
         ]
       },
       {
         "scenario_id": "AF-1013-H3",
         "seed": 1875398,
-        "changed_decisions": 3,
+        "changed_decisions": 5,
         "diff": [
+          {
+            "scenario_id": "AF-1013-H3",
+            "tx_id": "AF-1013-H3-A047",
+            "amount": 164.17,
+            "before": "allow",
+            "after": "review"
+          },
           {
             "scenario_id": "AF-1013-H3",
             "tx_id": "AF-1013-H3-A007",
             "amount": 162.26,
+            "before": "review",
+            "after": "block"
+          },
+          {
+            "scenario_id": "AF-1013-H3",
+            "tx_id": "AF-1013-H3-A008",
+            "amount": 174.91,
             "before": "review",
             "after": "block"
           },
@@ -556,10 +838,32 @@
       {
         "scenario_id": "AF-1013-H4",
         "seed": 2006469,
-        "changed_decisions": 0,
-        "diff": []
+        "changed_decisions": 3,
+        "diff": [
+          {
+            "scenario_id": "AF-1013-H4",
+            "tx_id": "AF-1013-H4-A008",
+            "amount": 125.76,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H4",
+            "tx_id": "AF-1013-H4-A032",
+            "amount": 156.21,
+            "before": "allow",
+            "after": "review"
+          },
+          {
+            "scenario_id": "AF-1013-H4",
+            "tx_id": "AF-1013-H4-A015",
+            "amount": 184.05,
+            "before": "allow",
+            "after": "review"
+          }
+        ]
       }
     ],
-    "total_changed_decisions": 15
+    "total_changed_decisions": 33
   }
 }

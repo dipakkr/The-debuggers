@@ -286,17 +286,73 @@ function perScenarioOf(spec: ScenarioSpec, evalSet: ScoredTx[]): ScenarioOutcome
 /** Deterministic defense acceptance gate — thresholds are policy, not vibes.
  *  recallGain is measured against the DISCOVERED THREAT CLASS (fresh-seed
  *  recompiles of the blind-spot genome), not diluted by template scenarios. */
+export interface GateBudgets {
+  /** minimum recall gain on the discovered threat class */
+  min_threat_recall_gain: number;
+  /** absolute ceiling on the false-positive increase */
+  max_fpr_delta_abs: number;
+  /** ceiling on the RELATIVE false-positive increase */
+  max_fpr_delta_rel: number;
+  /** ceiling on the extra legitimate traffic pushed into the review queue */
+  max_review_rate_delta: number;
+  /** share of fresh-seed descendants that must improve */
+  min_survival_share: number;
+}
+
+/**
+ * Deterministic acceptance budgets. Both an ABSOLUTE and a RELATIVE
+ * false-positive ceiling apply: a flat one-point allowance was sized for a
+ * detector running at ~2.8% FPR, and would wave through a five-fold increase
+ * once the baseline is at 0.19%.
+ *
+ * The review-rate budget matters just as much. Recall that counts analyst
+ * holds can otherwise be bought simply by reviewing more traffic, so the extra
+ * queue load a defense creates is itself gated.
+ */
+export const GATE_BUDGETS: GateBudgets = {
+  min_threat_recall_gain: 0.05,
+  max_fpr_delta_abs: 0.0025,
+  max_fpr_delta_rel: 1.0,
+  max_review_rate_delta: 0.005,
+  min_survival_share: 0.8,
+};
+
 export function gateDecision(
   threatRecallGain: number,
   fprDelta: number,
   freshSeedsSurvived: number,
-  totalFreshSeeds: number
+  totalFreshSeeds: number,
+  opts?: { baseFpr?: number; reviewRateDelta?: number }
 ): { accepted: boolean; reasons: string[] } {
+  const b = GATE_BUDGETS;
   const reasons: string[] = [];
-  if (threatRecallGain < 0.05) reasons.push(`threat_recall_gain_${(threatRecallGain * 100).toFixed(1)}pts_below_+5pts`);
-  if (fprDelta > 0.01) reasons.push(`fpr_delta_+${(fprDelta * 100).toFixed(2)}pts_above_1pt`);
-  if (totalFreshSeeds > 0 && freshSeedsSurvived / totalFreshSeeds < 0.8)
-    reasons.push(`survived_${freshSeedsSurvived}/${totalFreshSeeds}_below_80%`);
+  if (threatRecallGain < b.min_threat_recall_gain) {
+    reasons.push(
+      `threat_recall_gain_${(threatRecallGain * 100).toFixed(1)}pts_below_+${(b.min_threat_recall_gain * 100).toFixed(0)}pts`
+    );
+  }
+  if (fprDelta > b.max_fpr_delta_abs) {
+    reasons.push(
+      `fpr_delta_+${(fprDelta * 100).toFixed(3)}pts_above_${(b.max_fpr_delta_abs * 100).toFixed(2)}pts`
+    );
+  }
+  const baseFpr = opts?.baseFpr ?? 0;
+  if (baseFpr > 0 && fprDelta / baseFpr > b.max_fpr_delta_rel) {
+    reasons.push(
+      `fpr_relative_increase_${((fprDelta / baseFpr) * 100).toFixed(0)}%_above_${(b.max_fpr_delta_rel * 100).toFixed(0)}%`
+    );
+  }
+  const reviewDelta = opts?.reviewRateDelta ?? 0;
+  if (reviewDelta > b.max_review_rate_delta) {
+    reasons.push(
+      `review_rate_delta_+${(reviewDelta * 100).toFixed(2)}pts_above_${(b.max_review_rate_delta * 100).toFixed(2)}pts`
+    );
+  }
+  if (totalFreshSeeds > 0 && freshSeedsSurvived / totalFreshSeeds < b.min_survival_share) {
+    reasons.push(
+      `survived_${freshSeedsSurvived}/${totalFreshSeeds}_below_${(b.min_survival_share * 100).toFixed(0)}%`
+    );
+  }
   return { accepted: reasons.length === 0, reasons };
 }
 

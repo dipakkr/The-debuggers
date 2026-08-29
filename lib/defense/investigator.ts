@@ -51,7 +51,7 @@ function demoProposal(input: InvestigationInput): Proposal {
         "Set graph_weight to its bounded maximum (0.6) and nudge the decision threshold down 3 points. The deadzone keeps legitimate traffic unaffected; the referee's FPR gate polices the sensitivity increase.",
       defense_config: { ...ZERO, threshold: nudged(0.03), graph_weight: 0.6 },
       expected_tradeoff:
-        "Small deliberate FPR increase within the +1pt budget; recall gain concentrated on coordinated fan-out families.",
+        "A small deliberate false-positive increase, well inside the gate absolute and relative budgets; the recall gain concentrates on coordinated fan-out families.",
       confidence: 0.72,
     });
   }

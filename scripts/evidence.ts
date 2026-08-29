@@ -5,7 +5,7 @@ import { ATTACK_FAMILIES, versionStamp } from "@/lib/contracts/genome";
 import { investigate } from "@/lib/defense/investigator";
 import { runDefenseGate } from "@/lib/defense/gate";
 import { loadModel, resetArena, runGeneration } from "@/lib/mutations/engine";
-import { SEEDS } from "@/lib/referee/referee";
+import { GATE_BUDGETS, SEEDS } from "@/lib/referee/referee";
 import { freshState } from "@/lib/state";
 
 async function main(): Promise<void> {
@@ -50,6 +50,10 @@ const evidence = {
   versions: versionStamp("demo"),
   baseline: state.baselineRun?.metrics,
   baseline_operating_points: state.baselineOperatingPoints,
+  // v1 across the whole score range on the DISCOVERED attack. The point of
+  // this table is that no threshold rescues a novel attack: the operating
+  // point is not the problem, the missing signal is.
+  held_out_operating_points_v1: gate.finalBase.operating_points,
   detector: {
     version: model.version,
     feature_names: model.feature_names,
@@ -75,6 +79,7 @@ const evidence = {
     source: investigation.source,
     proposal: investigation.proposal,
   },
+  gate_budgets: GATE_BUDGETS,
   defense_gate: {
     accepted: gate.accepted,
     reasons: gate.gateReasons,

@@ -158,7 +158,11 @@ export function runDefenseGate(
     threatRecallGain,
     candRun.metrics.fpr - baseRun.metrics.fpr,
     survived,
-    Math.max(1, improvable.length)
+    Math.max(1, improvable.length),
+    {
+      baseFpr: baseRun.metrics.fpr,
+      reviewRateDelta: candRun.metrics.review_rate - baseRun.metrics.review_rate,
+    }
   );
 
   // Exact replay, reported in two clearly separated parts.
@@ -208,6 +212,10 @@ export function runDefenseGate(
       cand_recall: candRun.metrics.fraud_recall,
       base_fpr: baseRun.metrics.fpr,
       cand_fpr: candRun.metrics.fpr,
+      base_review_rate: baseRun.metrics.review_rate,
+      cand_review_rate: candRun.metrics.review_rate,
+      base_recall_with_review: baseRun.metrics.recall_with_review,
+      cand_recall_with_review: candRun.metrics.recall_with_review,
       survived: survived,
       improvable: improvable.length,
       mcnemar_statistic: significance.statistic,

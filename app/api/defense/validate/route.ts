@@ -17,5 +17,20 @@ export async function POST() {
     return NextResponse.json({ error: "stored proposal invalid" }, { status: 500 });
   }
   const gate = runDefenseGate(state, loadModel(), parsed.data);
-  return NextResponse.json({ ...serializeState(state), gate });
+  return NextResponse.json({
+    ...serializeState(state),
+    gate: {
+      accepted: gate.accepted,
+      gateReasons: gate.gateReasons,
+      candidateConfig: gate.candidateConfig,
+      survival: gate.survival,
+      significance: gate.significance,
+      recallInterval: gate.recallInterval,
+      before: gate.finalBase?.metrics ?? null,
+      after: gate.finalCand?.metrics ?? null,
+      replayDiscovery: gate.replayDiscovery,
+      replayFresh: gate.replayFresh,
+      replayDiff: gate.replayDiff,
+    },
+  });
 }

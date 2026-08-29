@@ -173,3 +173,22 @@ describe("detector operating point", () => {
     expect(m.p95_latency_ms).toBeGreaterThan(0);
   });
 });
+
+describe("threat corpus", () => {
+  it("marks exactly the compiled families as simulated, and nothing else", async () => {
+    const { THREAT_FAMILIES } = await import("@/lib/threat-intel/families");
+    const simulated = THREAT_FAMILIES.filter((f) => f.simulated).map((f) => f.id).sort();
+    expect(simulated).toEqual([...ATTACK_FAMILIES].sort());
+  });
+
+  it("is broad enough to answer the diversity criterion, with every entry grounded", async () => {
+    const { THREAT_FAMILIES } = await import("@/lib/threat-intel/families");
+    expect(THREAT_FAMILIES.length).toBeGreaterThanOrEqual(18);
+    expect(new Set(THREAT_FAMILIES.map((f) => f.category)).size).toBeGreaterThanOrEqual(6);
+    for (const f of THREAT_FAMILIES) {
+      expect(f.how_genai_changes_it.length, `${f.id} needs a GenAI mechanism`).toBeGreaterThan(60);
+      expect(f.potential_blind_spot.length, `${f.id} needs a blind spot`).toBeGreaterThan(20);
+      expect(f.observable_signals.length, `${f.id} needs observable signals`).toBeGreaterThan(0);
+    }
+  });
+});

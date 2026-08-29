@@ -116,8 +116,9 @@ export const THREAT_FAMILIES: ThreatFamily[] = [
     observable_signals: ["cross-attempt behavioural drift", "systematic boundary probing"],
     existing_defense: "Periodic model retraining",
     potential_blind_spot: "The gap between retraining cycles",
-    safe_synthetic_representation: "This arena's entire loop, run safely against our own detector",
-    simulated: true,
+    safe_synthetic_representation:
+      "Implemented as this arena's entire loop rather than as a transaction family: the mutation engine IS this threat, run safely against our own detector",
+    simulated: false,
     genome_mapping: ["the mutation engine itself"],
     selected: true,
   },

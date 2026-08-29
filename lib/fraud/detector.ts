@@ -53,6 +53,11 @@ const nowNs: () => number =
     ? () => Number(process.hrtime.bigint())
     : () => performance.now() * 1e6;
 
+/** Coordination below this score is ordinary merchant traffic. */
+const GRAPH_DEADZONE = 0.45;
+/** Score span over which the graph term ramps from zero to full weight. */
+const GRAPH_RAMP = 0.3;
+
 export interface ScoredTx {
   tx: Featurized["tx"];
   f: TxFeatures;
@@ -102,9 +107,15 @@ export function scoreFeaturized(
     if (defense) {
       const escC = defense.escalation_weight * 4 * item.f.escalation_score;
       const patC = defense.pattern_weight * 4 * item.f.pattern_score;
-      // deadzone until coordination is strong, then steep ramp
+      // Deadzone, then a linear ramp to full weight. The previous form used a
+      // strict `> 0.5` test with a very steep ramp, which contributed exactly
+      // zero for a cohort sitting at 0.50 — the single most common value for a
+      // coordinated burst, because convergence saturates at three accounts.
       const b = item.f.newcomer_burst_score;
-      const graphC = b > 0.5 ? defense.graph_weight * 4 * Math.min(1, (b - 0.5) * 4) : 0;
+      const graphC =
+        b >= GRAPH_DEADZONE
+          ? defense.graph_weight * 4 * Math.min(1, (b - GRAPH_DEADZONE) / GRAPH_RAMP)
+          : 0;
 
       // structuring: repeated near-ceiling legs sprayed across storefronts.
       // Either signal alone is ordinary; their product is the tell.
@@ -128,10 +139,17 @@ export function scoreFeaturized(
       if (takeC > 0.15) contribs.push(["TAKEOVER_SESSION", takeC]);
       logit += escC + patC + graphC + strC + takeC;
 
-      // hard policy rule: unmistakable coordinated newcomer burst => hold.
-      // Calibrated so legitimate traffic essentially never trips it.
+      // Hard policy rule: an unmistakable coordinated newcomer burst is held
+      // for an analyst. Two ways to qualify — a very high burst score with any
+      // corroborating cohort, or a moderate score with a LARGE cohort. Both
+      // require the cross-account structure; neither fires on a single account.
       // cohortSize counts self when self is a first-touch, hence nc >= 2.
-      if (b >= 0.75 && item.f.newcomer_count_48h >= 2) holdForReview = true;
+      if (
+        (b >= 0.75 && item.f.newcomer_count_48h >= 2) ||
+        (b >= GRAPH_DEADZONE && item.f.newcomer_count_48h >= 4)
+      ) {
+        holdForReview = true;
+      }
     }
 
     const risk = sigmoid(logit);
