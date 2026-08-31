@@ -54,9 +54,15 @@ than faked.
 
 ### Instant rails
 
+The taxonomy classifies by **mechanism**, not by rail, because a rail is a
+cross-cutting axis rather than a category: authorised push payment scams, mule
+fan-out and structuring all ride instant rails, and each is filed under the
+mechanism that a detector would actually have to model. Only the family whose
+defining property *is* the rail's irrevocability appears here.
+
 | Family | GenAI advantage | Blind spot | Status |
 |---|---|---|---|
-| Coordinated mule-network fan-out | Mints a coherent identity batch converging on one cash-out point | Per-account behaviour is normal; the structure lives *between* accounts | **Simulated** |
+| Coordinated mule-network fan-out | Mints a coherent identity batch converging on one cash-out point, exploiting settlement finality so the cash-out cannot be reversed | Per-account behaviour is normal; the structure lives *between* accounts | **Simulated** |
 
 ### Social engineering
 

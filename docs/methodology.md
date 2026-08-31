@@ -53,6 +53,35 @@ false-positive ceiling. Two details matter:
    legitimate-score quantile so recall-with-review stays high without paying the precision
    cost on declines.
 
+## Calibration provenance
+
+Every number in this repository is measured inside our own simulator. That is the
+design — a closed loop needs a world it fully controls — but it means the *fidelity*
+of the world is an assumption, not a result. This table states, parameter by
+parameter, whether a value is anchored to a published figure or simply assumed.
+Rows marked **assumed** are chosen for plausibility and internal coherence; they
+are not fitted to any real network's data, and we do not claim otherwise.
+
+| Parameter | Value | Basis |
+|---|---|---|
+| Population size | 1,200 customers, 300 merchants | **Assumed.** Sized so cross-account graph structure is observable while an experiment stays under a second. |
+| Per-customer spend | lognormal, mean drawn from $18–$90, CV 0.3–0.75 | **Assumed.** Lognormal is the standard shape for consumer transaction amounts; the parameters are not fitted. |
+| Arrival process | Poisson, 0.3–3.2 payments/day per customer | **Assumed.** Poisson arrivals with per-customer intensity; rate range chosen to span light and heavy users. |
+| Merchant ticket sizes | MCC base × U(0.6, 1.6) | **Assumed.** Relative ordering across MCCs (grocery < electronics < travel < luxury) is realistic; absolute values are not sourced. |
+| Merchant loyalty | 88% of payments at a preferred merchant | **Assumed.** |
+| Device churn | 25% of customers carry a second device; 10% of payments on it | **Assumed.** |
+| Young accounts | ~8% of the population under 30 days old | **Assumed.** Present so the graph gate must tolerate genuine newcomers without exploding false positives — an explicit test. |
+| Cross-border share | 4% of legitimate payments | **Assumed rate**, but the *asymmetry* it creates is sourced: the EBA/ECB 2024 payment-fraud report finds card fraud is disproportionately cross-border, with cross-border fraud rates substantially higher than domestic and roughly 30% of card-fraud value involving transactions outside the EEA. Legitimate cross-border spend therefore has to be the exception for the geography signal to mean anything — an earlier version drew transaction country from the merchant, which inverted the signal entirely. |
+| Fraud prevalence in the evaluation pools | 0.27% **by transaction count** | **Deliberately higher than reality, and stated as such.** The Nilson Report puts 2024 global card-fraud losses at $33.41bn against $51.92tn of card volume — about **6.4 basis points of value**. That is a value-weighted figure and not directly comparable to a count-weighted one (fraudulent tickets skew larger), but a realistic count-based rate would still be well below 0.27%. We hold the pools fraud-richer than reality so that 81 and 90 fraud transactions exist to measure at all; the consequence is that reported precision is *optimistic* relative to production, which is why the operating point is calibrated separately. |
+| Operating-point prevalence | 0.3% | Matched to the evaluation pools above, so the threshold is chosen for the prevalence it will actually face rather than for the fraud-dense training pool. |
+| Decline / review split | block ≥ 0.895, review ≥ 0.5674 | **Derived, not assumed.** Swept for maximum F1 at deployment prevalence under a 0.3% false-positive ceiling. The two-tier split mirrors how networks separate auto-declines from analyst queues; the specific thresholds fall out of the sweep. |
+| Burn-in | 16 of 30 backdrop days excluded | **Derived.** Behavioural features are meaningless until a customer has history. |
+
+**What would make this stronger.** Fitting the amount and cadence distributions to an
+authorized network extract, and re-deriving the operating point against that
+institution's own fraud rate and cost-of-decline. Neither is possible on public data
+alone, and both are listed in the production roadmap rather than approximated here.
+
 ## Two recall definitions, reported together
 
 - `fraud_recall` counts only **block** — an automatic decline.

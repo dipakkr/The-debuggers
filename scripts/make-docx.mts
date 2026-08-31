@@ -369,6 +369,11 @@ push(
     "A deterministic Referee owns all labels, metrics, seeds, acceptance gates, and replay results. Neither AI grades itself."
   ),
   note(
+    "THE ONE THING TO UNDERSTAND BEFORE THE NUMBERS",
+    "Our headline figures come in two pairs, and the second pair looks worse on purpose. Against attacks the detector was TRAINED on it reaches ROC-AUC 0.98 and F1 58%. Against an attack our own red team EVOLVED to evade it, F1 falls to the twenties \u2014 and stays under 15% at every threshold across the entire score range. That is the finding, not a shortfall. A novel attack is a MISSING-FEATURE problem, not a calibration problem: no operating point rescues it, and you only learn which feature is missing by generating the attack first. Section 10 shows the full operating curve that establishes this.",
+    "red"
+  ),
+  note(
     "MEASURED RESULT",
     `ROC-AUC ${pct(evidence.baseline.roc_auc)} and F1 ${pct(evidence.baseline.f1)} at ${pct(evidence.baseline.fpr)} false positives on known attacks. On an attack the red team evolved specifically to evade, recall including analyst holds rose from ${pct(evidence.defense_gate.held_out_before.recall_with_review)} to ${pct(evidence.defense_gate.held_out_after.recall_with_review)} for ${pointDelta(evidence.defense_gate.held_out_before.fpr, evidence.defense_gate.held_out_after.fpr)} of false positives \u2014 a PAIRED result at p < 0.001, with ${evidence.defense_gate.significance?.after_only ?? 0} transactions newly caught and ${evidence.defense_gate.significance?.before_only ?? 0} newly missed.`
   ),
@@ -674,6 +679,40 @@ push(
       ["Product surface", "The closed loop, both recall definitions, the separated replays and the brand palette are all present in the UI", "ui-contract"],
     ],
     [2_200, 5_120, 1_800]
+  )
+);
+
+push(
+  pageBreak(),
+  h2("Calibration provenance"),
+  p(
+    "Every number in this submission is measured inside our own simulator. That is the design \u2014 a closed loop needs a world it fully controls \u2014 but it means the FIDELITY of that world is an assumption rather than a result, and we state which parameters are anchored and which are simply assumed."
+  ),
+  table(
+    [
+      ["Parameter", "Value", "Basis"],
+      ["Population", "1,200 customers, 300 merchants", "Assumed; sized so graph structure is observable"],
+      ["Spend distribution", "Lognormal, CV 0.3-0.75", "Assumed shape, parameters not fitted"],
+      ["Arrivals", "Poisson, 0.3-3.2 per day", "Assumed"],
+      ["Young accounts", "~8% under 30 days", "Assumed; forces the graph gate to tolerate newcomers"],
+      [
+        "Cross-border share",
+        "4% of legitimate spend",
+        "Rate assumed; the asymmetry is sourced (EBA/ECB 2024 payment-fraud report: card fraud is disproportionately cross-border, ~30% of card-fraud value outside the EEA)",
+      ],
+      [
+        "Fraud prevalence",
+        "0.27% by transaction COUNT",
+        "Deliberately above reality. Nilson 2024: $33.41bn losses on $51.92tn volume, about 6.4 basis points BY VALUE. Held richer so 81 and 90 fraud rows exist to measure; consequence is that precision reads optimistic",
+      ],
+      ["Operating point", "0.3% prevalence", "Matched to the evaluation pools, not the fraud-dense training pool"],
+      ["Decline / review split", "0.895 / 0.5674", "Derived by sweep, not assumed"],
+    ],
+    [2_200, 2_300, 4_620]
+  ),
+  p(
+    "What would make this stronger: fitting the amount and cadence distributions to an authorized network extract and re-deriving the operating point against that institution's own fraud rate and cost-of-decline. Neither is possible on public data alone, so both sit in the production roadmap rather than being approximated here.",
+    { italics: true }
   )
 );
 
