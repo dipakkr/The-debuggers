@@ -152,7 +152,7 @@ const PALE_BLUE = "EAF3FA";
 const PALE_RED = "FCECEA";
 const WHITE = "FFFFFF";
 const BORDER = "C9D1D9";
-const repoUrl = "https://github.com/dipakkr/mastercard-challlenge-hackathon";
+const repoUrl = "https://github.com/dipakkr/The-debuggers";
 const TEAM = "The debuggers";
 const MEMBERS: Array<[string, string]> = [
   ["Deepak Kumar", "dipakkr.co@gmail.com"],

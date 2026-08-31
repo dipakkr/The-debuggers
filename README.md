@@ -24,7 +24,7 @@ all against synthetic traffic, with a deterministic referee that neither AI can 
 | Deepak Kumar | dipakkr.co@gmail.com |
 | Naman Goyal | namangoyal21197@gmail.com |
 
-- **Repository:** https://github.com/dipakkr/mastercard-challlenge-hackathon
+- **Repository:** https://github.com/dipakkr/The-debuggers
 - **Working prototype:** https://adversarial-fraud-arena.vercel.app
 - **Solution walkthrough:** [`The debuggers.docx`](./The%20debuggers.docx)
 
@@ -67,8 +67,8 @@ Node.js 22 or newer. No API key, no database, no internet connection required â€
 demo mode runs the entire loop on deterministic policies.
 
 ```bash
-git clone https://github.com/dipakkr/mastercard-challlenge-hackathon.git
-cd mastercard-challlenge-hackathon
+git clone https://github.com/dipakkr/The-debuggers.git
+cd The-debuggers
 npm ci
 npm run dev
 ```
