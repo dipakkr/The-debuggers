@@ -315,7 +315,6 @@ No network, database, queue or provider latency is included, and no network-scal
 is made.
 
 
-
 ## Test evidence
 
 Run `npm run selfcheck` for the linter, type checker, full test suite and production
