@@ -152,7 +152,7 @@ const PALE_BLUE = "EAF3FA";
 const PALE_RED = "FCECEA";
 const WHITE = "FFFFFF";
 const BORDER = "C9D1D9";
-const repoUrl = "https://github.com/dipakkr/The-debuggers";
+const repoUrl = "https://github.com/dipakkr/mastercard-challlenge-hackathon";
 const TEAM = "The debuggers";
 const MEMBERS: Array<[string, string]> = [
   ["Deepak Kumar", "dipakkr.co@gmail.com"],
@@ -451,7 +451,7 @@ push(
       ["Criterion", "Primary evidence", "Measured value"],
       [
         "Diversity of attacks identified",
-        "19 GenAI-accelerated families across 7 channels and rails; 5 compiled end to end",
+        "20 GenAI-accelerated families across 7 channels and rails; 5 compiled end to end",
         `${evidence.attack_families.length} simulated`,
       ],
       [
@@ -484,7 +484,7 @@ push(
   h1("6. IDENTIFY"),
   h2("Threat Research"),
   p(
-    "The threat review covers nineteen defensive families across seven channels and rails. Five are compiled and scored end to end by the payment twin. The rest are documented with the sensor they would need rather than faked \u2014 simulating authorised-push-payment fraud or deepfake KYC at transaction level would mean inventing evidence the sensor cannot see."
+    "The threat review covers twenty defensive families across seven channels and rails. Five are compiled and scored end to end by the payment twin. The rest are documented with the sensor they would need rather than faked \u2014 simulating authorised-push-payment fraud or deepfake KYC at transaction level would mean inventing evidence the sensor cannot see."
   ),
   table(
     [
@@ -497,6 +497,7 @@ push(
       ["Synthetic identity", "Builds plausible histories", "Mature synthetic profiles", "Research"],
       ["Velocity camouflage", "Targets rate-window edges", "Sub-window pacing", "Research"],
       ["BIN enumeration", "Generated request signatures defeat fingerprinting", "Spread thin under every limit", "Research"],
+      ["Relay and fallback abuse", "Selects weak-fallback terminals, coordinates relay timing", "Only visible across terminals", "Research"],
       ["Token provisioning abuse", "Voice-cloned call-centre verification", "Provisioned token scores clean", "Research"],
       ["Voice-clone step-up bypass", "Real-time cloning from public audio", "The verification is the surface", "Research"],
       ["Refund and returnless abuse", "Dispute narratives generated per order", "Claims never accumulate anywhere", "Research"],
@@ -583,7 +584,7 @@ push(
   ),
   h2("Fraud-Detection Architecture"),
   p(
-    "The baseline combines calibrated rules with logistic regression. It uses seven core behavioral features and emits reason codes."
+    "The baseline combines calibrated rules with logistic regression. It uses eight behavioural features and emits reason codes."
   ),
   p(
     "The advanced defense adds merchant-convergence graph signals. The selected mule family requires relationship evidence across accounts."

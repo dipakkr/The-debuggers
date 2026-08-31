@@ -7,7 +7,7 @@ it and the exact evidence a judge can check. No score is claimed — only covera
 
 | Evidence | Where |
 |---|---|
-| 19 GenAI-accelerated fraud families across 7 categories | `lib/threat-intel/families.ts`, [threat research](threat-research.md) |
+| 20 GenAI-accelerated fraud families across 7 categories | `lib/threat-intel/families.ts`, [threat research](threat-research.md) |
 | Card-present, card-not-present, identity, instant rails, social engineering, merchant-side and agentic surfaces | Threat Intelligence view, grouped by category |
 | Each family carries a GenAI mechanism, observable payment signals, the existing control, and the specific blind spot | Every entry; enforced by test |
 | 5 families compiled and scored end to end | `ATTACK_FAMILIES`; the corpus marks exactly these as simulated, enforced by test |

@@ -24,13 +24,13 @@ all against synthetic traffic, with a deterministic referee that neither AI can 
 | Deepak Kumar | dipakkr.co@gmail.com |
 | Naman Goyal | namangoyal21197@gmail.com |
 
-- **Repository:** https://github.com/dipakkr/The-debuggers
+- **Repository:** https://github.com/dipakkr/mastercard-challlenge-hackathon
 - **Working prototype:** https://adversarial-fraud-arena.vercel.app
 - **Solution walkthrough:** [`The debuggers.docx`](./The%20debuggers.docx)
 
 ## The three pillars
 
-**Identify.** [19 GenAI-accelerated fraud families](docs/threat-research.md) across seven
+**Identify.** [20 GenAI-accelerated fraud families](docs/threat-research.md) across seven
 channels and rails — card-present, card-not-present, identity, instant rails, social
 engineering, merchant-side and agentic — each with the mechanism GenAI changes, the
 observable payment signal, the existing control and the specific blind spot. Five are
@@ -67,8 +67,8 @@ Node.js 22 or newer. No API key, no database, no internet connection required �
 demo mode runs the entire loop on deterministic policies.
 
 ```bash
-git clone https://github.com/dipakkr/The-debuggers.git
-cd The-debuggers
+git clone https://github.com/dipakkr/mastercard-challlenge-hackathon.git
+cd mastercard-challlenge-hackathon
 npm ci
 npm run dev
 ```
@@ -87,7 +87,7 @@ honours `PORT`, so `PORT=3411 npm run dev` works.
 ```bash
 npm run evidence     # re-runs the whole experiment -> data/evidence/latest.json
 npm run docs         # re-renders README + docs/evaluation.md from that evidence
-npm run selfcheck    # lint, typecheck, 75 tests, production build
+npm run selfcheck    # lint, typecheck, 90 tests, production build
 ```
 
 `npm run evidence` is deterministic: it regenerates `latest.json` with the same
@@ -343,9 +343,9 @@ Full record, including every proposed genome: `data/evidence/live-run.json`.
 
 | Transactions | Generation | Feature pass | Scoring | p95 scoring | Peak RSS | Experiment |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1,053 | 2,117,115 tx/s | 327,002 tx/s | 1,009,185 tx/s | 1 µs | 104 MB | 5 ms |
-| 10,232 | 1,963,178 tx/s | 257,415 tx/s | 1,606,311 tx/s | 1 µs | 218 MB | 54 ms |
-| 101,681 | 2,099,674 tx/s | 183,887 tx/s | 2,051,601 tx/s | 0 µs | 470 MB | 672 ms |
+| 1,053 | 2,117,115 tx/s | 327,002 tx/s | 1,009,185 tx/s | 875 ns | 104 MB | 5 ms |
+| 10,232 | 1,963,178 tx/s | 257,415 tx/s | 1,606,311 tx/s | 750 ns | 218 MB | 54 ms |
+| 101,681 | 2,099,674 tx/s | 183,887 tx/s | 2,051,601 tx/s | 417 ns | 470 MB | 672 ms |
 
 No network, database, queue or provider latency is included, and no network-scale claim
 is made.
@@ -367,7 +367,7 @@ and [responsible AI](docs/responsible-ai.md).
 
 ## Documentation
 
-- [Threat research — 19 families](docs/threat-research.md)
+- [Threat research — 20 families](docs/threat-research.md)
 - [Experimental methodology](docs/methodology.md)
 - [Measured evaluation](docs/evaluation.md) *(generated)*
 - [Architecture](docs/architecture.md)

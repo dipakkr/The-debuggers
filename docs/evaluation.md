@@ -264,9 +264,9 @@ Full record, including every proposed genome: `data/evidence/live-run.json`.
 
 | Transactions | Generation | Feature pass | Scoring | p95 scoring | Peak RSS | Experiment |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1,053 | 2,117,115 tx/s | 327,002 tx/s | 1,009,185 tx/s | 1 µs | 104 MB | 5 ms |
-| 10,232 | 1,963,178 tx/s | 257,415 tx/s | 1,606,311 tx/s | 1 µs | 218 MB | 54 ms |
-| 101,681 | 2,099,674 tx/s | 183,887 tx/s | 2,051,601 tx/s | 0 µs | 470 MB | 672 ms |
+| 1,053 | 2,117,115 tx/s | 327,002 tx/s | 1,009,185 tx/s | 875 ns | 104 MB | 5 ms |
+| 10,232 | 1,963,178 tx/s | 257,415 tx/s | 1,606,311 tx/s | 750 ns | 218 MB | 54 ms |
+| 101,681 | 2,099,674 tx/s | 183,887 tx/s | 2,051,601 tx/s | 417 ns | 470 MB | 672 ms |
 
 No network, database, queue or provider latency is included, and no network-scale claim
 is made.

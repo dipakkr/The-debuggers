@@ -166,6 +166,26 @@ export const THREAT_FAMILIES: ThreatFamily[] = [
     selected: false,
   },
   {
+    id: "relay_and_fallback_abuse",
+    name: "Orchestrated relay and fallback abuse",
+    category: "card_present",
+    how_genai_changes_it:
+      "Agents select terminals and merchants whose fallback handling is weakest, and coordinate the timing window a relay needs, turning an opportunistic physical attack into one that can be planned and repeated at scale.",
+    observable_signals: [
+      "chip transaction followed by magstripe fallback at the same terminal",
+      "authorisation geography inconsistent with a recent card-present use",
+      "terminal-level fallback rate diverging from its own baseline",
+    ],
+    existing_defense: "EMV cryptogram validation, fallback rate monitoring, terminal risk profiling",
+    potential_blind_spot:
+      "Fallback is legitimate often enough that a per-terminal rule tolerates it; the pattern is only visible across terminals",
+    safe_synthetic_representation:
+      "Entry-mode and terminal metadata only; no cryptogram, key or protocol behaviour is modelled",
+    simulated: false,
+    genome_mapping: [],
+    selected: false,
+  },
+  {
     id: "token_provisioning_abuse",
     name: "Wallet and token provisioning abuse",
     category: "identity",

@@ -23,7 +23,7 @@ Biannual Threats Report (Spring 2026), FBI Internet Crime Report (2025), Europol
 
 ## The corpus
 
-19 families across 7 categories. **Simulated** means the payment twin compiles and scores
+20 families across 7 categories. **Simulated** means the payment twin compiles and scores
 it end to end; **research** means it is documented with the sensor it would need rather
 than faked.
 
@@ -36,6 +36,12 @@ than faked.
 | Structuring across storefronts | Decomposes one value into legs under a ceiling, sprayed across merchants | Each leg is unremarkable; no merchant sees the repetition | **Simulated** |
 | Adaptive velocity camouflage | Reshapes inter-arrival times after each block, learning window edges | Pacing below every local window while the daily total is extreme | Research |
 | BIN enumeration and credential stuffing | Generated request signatures and timing jitter defeat bot fingerprinting | Enumeration spread thin stays under every per-merchant limit | Research |
+
+### Card present
+
+| Family | GenAI advantage | Blind spot | Status |
+|---|---|---|---|
+| Orchestrated relay and fallback abuse | Selects terminals whose fallback handling is weakest and coordinates the relay timing window, turning an opportunistic physical attack into a repeatable one | Fallback is legitimate often enough that a per-terminal rule tolerates it; the pattern is only visible across terminals | Research |
 
 ### Identity
 

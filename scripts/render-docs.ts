@@ -30,6 +30,15 @@ const pc = (x: number, d = 2) => `${(x * 100).toFixed(d)}%`;
 const pts = (x: number, d = 2) => `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(d)} pts`;
 const n = (x: number) => x.toLocaleString("en-US");
 
+/** Scoring latency is sub-microsecond; a fixed unit rounds it to a misleading
+ *  zero, so pick the unit that actually carries the number. */
+const latency = (ms: number): string => {
+  const ns = ms * 1e6;
+  if (ns < 1000) return `${Math.round(ns)} ns`;
+  if (ns < 1e6) return `${(ns / 1000).toFixed(ns < 10_000 ? 2 : 0)} µs`;
+  return `${ms.toFixed(2)} ms`;
+};
+
 const base: Metrics = ev.baseline;
 const before: Metrics = ev.defense_gate.held_out_before;
 const after: Metrics = ev.defense_gate.held_out_after;
@@ -204,7 +213,7 @@ ${bench.results[0].trials} trials per scale on Node.js \`${bench.results[0].node
 
 | Transactions | Generation | Feature pass | Scoring | p95 scoring | Peak RSS | Experiment |
 |---:|---:|---:|---:|---:|---:|---:|
-${bench.results.map((r: Record<string, number>) => `| ${n(r.transactions)} | ${n(r.generation_tx_s)} tx/s | ${n(r.feature_tx_s)} tx/s | ${n(r.scoring_tx_s)} tx/s | ${(r.p95_latency_ms * 1000).toFixed(0)} µs | ${r.memory_rss_mb} MB | ${r.experiment_ms} ms |`).join("\n")}
+${bench.results.map((r: Record<string, number>) => `| ${n(r.transactions)} | ${n(r.generation_tx_s)} tx/s | ${n(r.feature_tx_s)} tx/s | ${n(r.scoring_tx_s)} tx/s | ${latency(r.p95_latency_ms)} | ${r.memory_rss_mb} MB | ${r.experiment_ms} ms |`).join("\n")}
 
 No network, database, queue or provider latency is included, and no network-scale claim
 is made.

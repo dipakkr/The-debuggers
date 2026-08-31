@@ -31,7 +31,7 @@ One Next.js application. No external services are required to run the full loop.
 | Path | Responsibility |
 |---|---|
 | `lib/contracts/genome.ts` | Fraud Genome, defense config, scenario, metrics and version schemas |
-| `lib/threat-intel/families.ts` | IDENTIFY corpus, 19 families, assessment schema with an id allowlist |
+| `lib/threat-intel/families.ts` | IDENTIFY corpus, 20 families, assessment schema with an id allowlist |
 | `lib/simulator/world.ts` | Synthetic population and legitimate transaction stream |
 | `lib/simulator/scenario.ts` | Seeded, pure attack compiler for five families |
 | `lib/attacks/templates.ts` | Loud canonical templates and same-family novelty distance |
