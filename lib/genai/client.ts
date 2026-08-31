@@ -33,6 +33,16 @@ function cfg() {
   return { base, key, model, temperature };
 }
 
+/**
+ * Timeout budget for a single provider call.
+ *
+ * Reasoning models take 25-40s for a schema-constrained response. Every call
+ * site must use this: the investigator carried its own hardcoded 20s and so
+ * timed out on every request while the strategist, which had been raised,
+ * worked fine — a fallback that looked like a model declining to help.
+ */
+export const LLM_TIMEOUT_MS = Number(process.env.ARENA_TIMEOUT_MS ?? 60_000);
+
 /** Last provider failure, surfaced so a silent fallback is never invisible. */
 let lastError: string | null = null;
 export function lastProviderError(): string | null {
@@ -98,7 +108,7 @@ async function once(
 export async function chatJson(
   system: string,
   user: string,
-  timeoutMs = 60_000
+  timeoutMs = LLM_TIMEOUT_MS
 ): Promise<LlmResult> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -140,7 +150,7 @@ export async function chatStructured<T>(
   system: string,
   user: string,
   schema: ZodType<T, ZodTypeDef, unknown>,
-  timeoutMs = 60_000,
+  timeoutMs = LLM_TIMEOUT_MS,
   complete: Completion = chatJson
 ): Promise<
   | { ok: true; data: T; source: "llm" | "repair" }

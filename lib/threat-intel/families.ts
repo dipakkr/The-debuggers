@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   chatStructured,
+  LLM_TIMEOUT_MS,
   type Completion,
 } from "@/lib/genai/client";
 
@@ -358,7 +359,7 @@ export async function assessThreats(
     THREAT_SYSTEM,
     `<data>${JSON.stringify({ note, families: THREAT_FAMILIES })}</data>`,
     ThreatAssessmentSchema,
-    15_000,
+    LLM_TIMEOUT_MS,
     complete
   );
   return result.ok

@@ -17,11 +17,7 @@ import { computeFitness } from "@/lib/referee/fitness";
 import { isNovel } from "@/lib/attacks/templates";
 import { demoMutation, rootGenome } from "./demo-policy";
 import { appendExperiment, makeExperimentId } from "@/lib/referee/ledger";
-import { chatStructured, lastProviderError, liveModeAvailable } from "@/lib/genai/client";
-
-/** Reasoning models need well past the old 15s default; measured 11-19s for a
- *  single strategist call. Configurable for slower or faster providers. */
-const LLM_TIMEOUT_MS = Number(process.env.ARENA_TIMEOUT_MS ?? 60_000);
+import { chatStructured, lastProviderError, liveModeAvailable, LLM_TIMEOUT_MS } from "@/lib/genai/client";
 
 /**
  * The bounds, spelled out for the model.

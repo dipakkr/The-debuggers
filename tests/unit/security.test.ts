@@ -233,3 +233,25 @@ describe("strategist prompt completeness", () => {
     expect(engine).toContain("split.ceiling_ratio: 0.5..0.99");
   });
 });
+
+describe("one timeout budget for every provider call", () => {
+  it("has no per-call-site hardcoded timeout", () => {
+    // The investigator carried its own 20s while the strategist had been
+    // raised to 60s, so the blue side timed out on every request and fell back
+    // silently - which looked like the model declining to help.
+    for (const f of [
+      "lib/defense/investigator.ts",
+      "lib/threat-intel/families.ts",
+      "lib/mutations/engine.ts",
+    ]) {
+      const src = readFileSync(f, "utf8");
+      expect(src, `${f} must not hardcode a timeout`).not.toMatch(/\b(10|15|20|30)_000\b/);
+      if (src.includes("chatStructured(")) {
+        expect(src, `${f} must use the shared budget`).toContain("LLM_TIMEOUT_MS");
+      }
+    }
+    const client = readFileSync("lib/genai/client.ts", "utf8");
+    expect(client).toContain("export const LLM_TIMEOUT_MS");
+    expect(client).toContain("ARENA_TIMEOUT_MS");
+  });
+});

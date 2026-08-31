@@ -1,5 +1,5 @@
 import { Proposal, ProposalSchema } from "@/lib/contracts/genome";
-import { chatStructured } from "@/lib/genai/client";
+import { chatStructured, LLM_TIMEOUT_MS } from "@/lib/genai/client";
 
 /**
  * Blue investigator inputs come exclusively from Referee outputs:
@@ -159,7 +159,7 @@ export async function investigate(input: InvestigationInput, mode: "demo" | "liv
       BLUE_SYSTEM,
       `<data>${JSON.stringify(input)}</data>\nPropose the most defensible bounded defense change.`,
       ProposalSchema,
-      20_000
+      LLM_TIMEOUT_MS
     );
     if (res.ok) llmProposal = res.data;
   }
