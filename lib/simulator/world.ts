@@ -41,7 +41,49 @@ function hourWindow(rng: () => number): [number, number] {
   return [start, Math.min(23, start + int(rng, 12, 16))];
 }
 
-export function buildWorld(seed = 20260822, nCustomers = 1200, nMerchants = 300): World {
+/**
+ * Distribution parameters of the synthetic population.
+ *
+ * Exposed as overrides so the detector can be evaluated against WORLDS IT WAS
+ * NOT TUNED ON. Changing only the seed reshuffles the same distributions;
+ * changing these reshapes them, which is what actually tests whether a result
+ * is a property of the detector or an artefact of the world we happened to
+ * pick. Defaults reproduce the calibrated world exactly, so every existing
+ * experiment is unaffected.
+ */
+export interface WorldParams {
+  meanAmountLow: number;
+  meanAmountHigh: number;
+  amountCvLow: number;
+  amountCvHigh: number;
+  cadenceLow: number;
+  cadenceHigh: number;
+  /** share of the population under 30 days old */
+  youngAccountShare: number;
+  /** share of cardholders whose home country is not US */
+  foreignHomeShare: number;
+  /** share of customers carrying a second device */
+  secondDeviceShare: number;
+}
+
+export const DEFAULT_WORLD_PARAMS: WorldParams = {
+  meanAmountLow: 18,
+  meanAmountHigh: 90,
+  amountCvLow: 0.3,
+  amountCvHigh: 0.75,
+  cadenceLow: 0.3,
+  cadenceHigh: 3.2,
+  youngAccountShare: 0.08,
+  foreignHomeShare: 0.18,
+  secondDeviceShare: 0.25,
+};
+
+export function buildWorld(
+  seed = 20260822,
+  nCustomers = 1200,
+  nMerchants = 300,
+  params: WorldParams = DEFAULT_WORLD_PARAMS
+): World {
   const rng = mulberry32(seed);
   const merchants: Merchant[] = [];
   for (let i = 0; i < nMerchants; i++) {
@@ -70,18 +112,19 @@ export function buildWorld(seed = 20260822, nCustomers = 1200, nMerchants = 300)
     }
     customers.push({
       id,
-      mean_amount: lognormal(crng, uniform(crng, 18, 90), 0.5),
-      amount_cv: uniform(crng, 0.3, 0.75),
-      cadence_per_day: uniform(crng, 0.3, 3.2),
+      mean_amount: lognormal(crng, uniform(crng, params.meanAmountLow, params.meanAmountHigh), 0.5),
+      amount_cv: uniform(crng, params.amountCvLow, params.amountCvHigh),
+      cadence_per_day: uniform(crng, params.cadenceLow, params.cadenceHigh),
       active_start,
       active_end,
       pref_merchants: prefs,
-      device_ids: [`D-${id}-1`, ...(crng() < 0.25 ? [`D-${id}-2`] : [])],
+      device_ids: [`D-${id}-1`, ...(crng() < params.secondDeviceShare ? [`D-${id}-2`] : [])],
       // home country of the cardholder; most spend happens here
-      country: crng() < 0.82 ? "US" : pick(crng, COUNTRIES),
-      // ~8% of the legit population are young accounts; the graph gate must
-      // tolerate them without exploding false positives.
-      account_age_days: crng() < 0.08 ? int(crng, 15, 29) : int(crng, 60, 2400),
+      country: crng() < 1 - params.foreignHomeShare ? "US" : pick(crng, COUNTRIES),
+      // young accounts; the graph gate must tolerate them without exploding
+      // false positives.
+      account_age_days:
+        crng() < params.youngAccountShare ? int(crng, 15, 29) : int(crng, 60, 2400),
     });
   }
   return { seed, customers, merchants, merchantIndex: new Map(merchants.map((m) => [m.id, m])) };

@@ -337,6 +337,49 @@ thought of, and the model reaches regions we did not.
 
 Full record, including every proposed genome: `data/evidence/live-run.json`.
 
+### Does any of this survive outside our own world?
+
+The honest objection to a closed loop is that every number is measured inside one
+world, so the results could be an artefact of the distributions we chose. We cannot
+answer that with an authorized network extract. We can answer the part that matters:
+the detector is trained and threshold-calibrated on the `calibrated` world **only**,
+and then scored — **no retraining, no recalibration** — against populations reshaped
+along spend level, dispersion, cadence, newcomer share, cross-border share and device
+churn.
+
+| World | What changed | ROC-AUC | F1 | FPR |
+|---|---|---:|---:|---:|
+| `calibrated` | the world every other experiment uses | 96.97% | 64.06% | 0.174% |
+| `affluent` | spend level roughly tripled | 96.57% | 66.34% | 0.112% |
+| `thrifty` | spend level roughly halved | 96.66% | 66.03% | 0.132% |
+| `erratic` | much wider per-customer amount dispersion | 97.25% | 64.40% | 0.190% |
+| `high-frequency` | customers transact far more often | 90.17% | 5.17% | 6.981% |
+| `young-heavy` | newcomers 8% -> 30% of the population | 96.58% | 63.45% | 0.179% |
+| `international` | cross-border cardholders 18% -> 55%, heavy device churn | 97.55% | 69.57% | 0.147% |
+| `adversarial-mix` | every dimension shifted at once | 89.73% | 10.11% | 3.641% |
+
+**It holds in 6 of 8, and it breaks in 2 — and the failure is the useful part.**
+
+Ranking generalises everywhere: ROC-AUC never drops below 89.73% in any
+world. But in the high-frequency regimes the **operating point** collapses: false
+positives reach 6.98%.
+
+The cause is specific and measurable. `vel_1h` and `vel_24h` are **absolute counts**,
+and both the learned weights and the hard decline rules (`vel_1h >= 12`, `vel_1h >= 14`)
+were calibrated against a population transacting about twice a day. Move that baseline
+to five a day and median `vel_24h` goes 2 → 5, and `VELOCITY_HIGH` false positives go
+**49 → 5,510** on legitimate traffic alone. The detector has not become worse at
+telling fraud from legitimate spend; the threshold has become wrong for the portfolio.
+
+That is a real production finding, not a simulator quirk: **a model tuned on one
+issuer's portfolio will over-decline on a higher-frequency one.** The fix is to
+normalise velocity against each customer's own trailing baseline rather than scoring
+raw counts, and to re-derive the operating point per portfolio. Both are named in the
+production roadmap. We are reporting it rather than quietly evaluating only on the
+world our thresholds happen to suit.
+
+Reproduce with `npm run robustness`; full record in `data/evidence/robustness.json`.
+
 ### Throughput
 
 5 trials per scale on Node.js `v25.1.0`, `darwin-arm64`, single process.
@@ -385,6 +428,12 @@ a full cross-institution identity network. Fraud sample sizes in the held-out po
 interval and a paired significance test rather than as a bare point estimate. The
 prototype runs in one process; production needs durable storage, workload isolation,
 authorized data and independent model governance.
+
+The world-misspecification study above found a concrete one: velocity is scored in
+absolute counts, so the operating point does not transfer to a portfolio with a
+different baseline transaction frequency. Ranking survives (ROC-AUC stays above 89%
+everywhere), the threshold does not. Per-customer velocity normalisation and
+per-portfolio threshold derivation are the fix, and they are not implemented here.
 
 ## License
 

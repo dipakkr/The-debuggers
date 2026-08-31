@@ -107,6 +107,11 @@ interface LiveRun {
   }>;
 }
 
+interface Robustness {
+  summary: Record<string, number>;
+  worlds: { world: string; note: string; metrics: Record<string, number> }[];
+}
+
 interface Benchmark {
   generated_at: string;
   results: Array<{
@@ -130,6 +135,12 @@ const benchmark = JSON.parse(
   readFileSync("data/evidence/benchmark.json", "utf8")
 ) as Benchmark;
 // optional: only present when `npm run evidence:live` has been run with a key
+let robust: Robustness | null = null;
+try {
+  robust = JSON.parse(readFileSync("data/evidence/robustness.json", "utf8")) as Robustness;
+} catch {
+  robust = null;
+}
 let live: LiveRun | null = null;
 try {
   live = JSON.parse(readFileSync("data/evidence/live-run.json", "utf8")) as LiveRun;
@@ -1152,7 +1163,40 @@ push(
 
 push(
   pageBreak(),
-  h1("17. Limitations"),
+  h1("17. Does Any of This Survive Outside Our Own World?"),
+  p(
+    "The honest objection to a closed loop is that every number is measured inside one world, so the results could be an artefact of the distributions we chose. We cannot answer that with an authorized network extract. We can answer the part that matters: the detector is trained and threshold-calibrated on one world ONLY, then scored against populations reshaped along spend level, dispersion, cadence, newcomer share, cross-border share and device churn. No retraining. No recalibration."
+  ),
+  robust
+    ? table(
+        [
+          ["World", "What changed", "ROC-AUC", "F1", "FPR"],
+          ...robust.worlds.map((w) => [
+            w.world,
+            w.note,
+            pct(w.metrics.roc_auc),
+            pct(w.metrics.f1),
+            `${(w.metrics.fpr * 100).toFixed(3)}%`,
+          ]),
+        ],
+        [1_850, 3_270, 1_400, 1_300, 1_300]
+      )
+    : p("Not recorded in this build.", { italics: true }),
+  robust
+    ? note(
+        "IT HOLDS IN SIX OF EIGHT, AND THE FAILURE IS THE USEFUL PART",
+        `Ranking generalises everywhere: ROC-AUC never falls below ${pct(robust.summary.roc_auc_min)} in any world. But in the high-frequency regimes the OPERATING POINT collapses, with false positives reaching ${(robust.summary.fpr_max * 100).toFixed(2)}%. The cause is specific: vel_1h and vel_24h are ABSOLUTE counts, and both the learned weights and the hard decline rules were calibrated against a population transacting about twice a day. Move that baseline to five a day and median vel_24h goes 2 to 5, while VELOCITY_HIGH false positives go from 49 to 5,510 on legitimate traffic alone. The detector has not become worse at separating fraud; the threshold has become wrong for the portfolio.`,
+        "red"
+      )
+    : p(""),
+  p(
+    "This is a production finding rather than a simulator quirk: a model tuned on one issuer's portfolio will over-decline on a higher-frequency one. The fix is to normalise velocity against each customer's own trailing baseline rather than scoring raw counts, and to re-derive the operating point per portfolio. Both are named in the production roadmap. We report it rather than quietly evaluating only on the world our thresholds happen to suit."
+  )
+);
+
+push(
+  pageBreak(),
+  h1("18. Limitations"),
   bullet("The synthetic population does not represent every real payment distribution."),
   bullet("The final test uses fresh seeds from the same simulator family."),
   bullet("The graph signal covers merchant convergence, not a full network graph."),
@@ -1161,7 +1205,7 @@ push(
   bullet("A single block threshold cannot be simultaneously optimal for loud templates and for an attack evolved to sit beneath it. That tension is measured and disclosed, and it is the reason the Arena exists."),
   bullet("Sessions are cookie-scoped and in-memory, which is adequate for a shared demo but not for a multi-replica deployment."),
   bullet("Measured throughput excludes network and durable-storage costs."),
-  h1("18. Production Roadmap"),
+  h1("19. Production Roadmap"),
   numbered("Calibrate the simulator with authorized and privacy-protected network distributions.", 2),
   numbered("Move experiment state to durable, versioned storage.", 2),
   numbered("Run isolated search workers with strict quotas and policy controls.", 2),
@@ -1174,7 +1218,7 @@ push(
 );
 
 push(
-  h1("19. Reproduction Instructions"),
+  h1("20. Reproduction Instructions"),
   numbered("Clone the public repository.", 3),
   numbered("Use Node.js 22.", 3),
   numbered("Run npm ci.", 3),
@@ -1189,12 +1233,12 @@ push(
   p(
     "Use npm run handoff to create a secret-free continuation brief for another coding agent."
   ),
-  h1("20. GitHub Repository"),
+  h1("21. GitHub Repository"),
   p(repoUrl, { bold: true, color: BLUE }),
   p(
     "The repository includes the source, tests, evidence JSON, benchmark JSON, methodology, threat model, responsible AI statement, and this walkthrough."
   ),
-  h1("21. Web Prototype"),
+  h1("22. Web Prototype"),
   p(webUrl, { bold: true, color: BLUE }),
   p(
     "The public deployment uses Demo mode by default. The deployment does not need an API key to run the complete judge flow."

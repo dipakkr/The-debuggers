@@ -75,6 +75,21 @@ rather than a new threshold.
 | Per-session isolation so concurrent reviewers do not overwrite each other | `lib/session.ts` |
 | Guards for PAN/CVV/OTP/IBAN, prompt injection, oversized payloads, unsafe provider URLs | `lib/guards/injection.ts` |
 
+## Robustness beyond the calibrated world
+
+The detector is trained and threshold-calibrated on one world, then scored without
+retraining against eight populations reshaped along spend level, dispersion, cadence,
+newcomer share, cross-border share and device churn (`npm run robustness`).
+
+| Result | Value |
+|---|---|
+| ROC-AUC range across all worlds | 89.73% – 97.55% |
+| Worlds holding FPR under 0.5% | 6 of 8 |
+| Failure mode found | absolute velocity counts do not transfer across portfolios |
+
+Reported because it is a real production finding: a model tuned on one issuer's
+portfolio will over-decline on a higher-frequency one.
+
 ## Stated limits
 
 Synthetic behaviour is calibrated to plausible distributions, not to any real network's

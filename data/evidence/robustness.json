@@ -1,0 +1,175 @@
+{
+  "generated_at": "2026-08-31T16:38:21.341Z",
+  "commit": "e56cea13517f7c2567063366fb6d064b64334037",
+  "detector": "risk-engine-1.1.0",
+  "note": "The detector is trained and threshold-calibrated on the 'calibrated' world ONLY. Every other row reshapes the population distributions and rescores the SAME artifact with no retraining and no recalibration.",
+  "summary": {
+    "worlds": 8,
+    "roc_auc_min": 0.8973,
+    "roc_auc_max": 0.9755,
+    "roc_auc_mean": 0.9519,
+    "fpr_max": 0.06981
+  },
+  "worlds": [
+    {
+      "world": "calibrated",
+      "note": "the world every other experiment uses",
+      "seed": 20260822,
+      "metrics": {
+        "fraud_recall": 0.5720164609053497,
+        "recall_with_review": 0.7901234567901234,
+        "roc_auc": 0.9697168023851009,
+        "precision": 0.7277486910994765,
+        "f1": 0.640552995391705,
+        "fpr": 0.001743620695436408,
+        "fnr": 0.4279835390946502,
+        "review_rate": 0.013915434396271334,
+        "average_precision": 0.6577060549236086,
+        "p50_latency_ms": 0.0005,
+        "p95_latency_ms": 0.001166,
+        "n_legit": 29823,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "affluent",
+      "note": "spend level roughly tripled",
+      "seed": 771,
+      "metrics": {
+        "fraud_recall": 0.5637860082304527,
+        "recall_with_review": 0.7901234567901234,
+        "roc_auc": 0.9656987624232,
+        "precision": 0.8058823529411765,
+        "f1": 0.6634382566585957,
+        "fpr": 0.0011170536862771647,
+        "fnr": 0.43621399176954734,
+        "review_rate": 0.013404644235325976,
+        "average_precision": 0.6722130569973291,
+        "p50_latency_ms": 0.000417,
+        "p95_latency_ms": 0.001,
+        "n_legit": 29542,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "thrifty",
+      "note": "spend level roughly halved",
+      "seed": 772,
+      "metrics": {
+        "fraud_recall": 0.5720164609053497,
+        "recall_with_review": 0.7695473251028807,
+        "roc_auc": 0.9666268369349252,
+        "precision": 0.7808988764044944,
+        "f1": 0.6603325415676959,
+        "fpr": 0.0013249082755809212,
+        "fnr": 0.4279835390946502,
+        "review_rate": 0.013758662861801876,
+        "average_precision": 0.6598496140981357,
+        "p50_latency_ms": 0.000375,
+        "p95_latency_ms": 0.000542,
+        "n_legit": 29436,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "erratic",
+      "note": "much wider per-customer amount dispersion",
+      "seed": 773,
+      "metrics": {
+        "fraud_recall": 0.5843621399176955,
+        "recall_with_review": 0.823045267489712,
+        "roc_auc": 0.9724580449137034,
+        "precision": 0.7171717171717171,
+        "f1": 0.6439909297052154,
+        "fpr": 0.0018991419947773595,
+        "fnr": 0.4156378600823045,
+        "review_rate": 0.017567063451690575,
+        "average_precision": 0.6417368364691034,
+        "p50_latency_ms": 0.000334,
+        "p95_latency_ms": 0.000541,
+        "n_legit": 29487,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "high-frequency",
+      "note": "customers transact far more often",
+      "seed": 774,
+      "metrics": {
+        "fraud_recall": 0.6296296296296297,
+        "recall_with_review": 0.8765432098765432,
+        "roc_auc": 0.901739643478879,
+        "precision": 0.026965103983080718,
+        "f1": 0.051715396315700525,
+        "fpr": 0.06981361118838673,
+        "fnr": 0.37037037037037035,
+        "review_rate": 0.13606130345717105,
+        "average_precision": 0.17386447226709303,
+        "p50_latency_ms": 0.000375,
+        "p95_latency_ms": 0.000583,
+        "n_legit": 79082,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "young-heavy",
+      "note": "newcomers 8% -> 30% of the population",
+      "seed": 775,
+      "metrics": {
+        "fraud_recall": 0.5679012345679012,
+        "recall_with_review": 0.7777777777777778,
+        "roc_auc": 0.9658106459966125,
+        "precision": 0.71875,
+        "f1": 0.6344827586206897,
+        "fpr": 0.001793960333543736,
+        "fnr": 0.43209876543209874,
+        "review_rate": 0.013786917378160193,
+        "average_precision": 0.6446681503052288,
+        "p50_latency_ms": 0.000375,
+        "p95_latency_ms": 0.000542,
+        "n_legit": 30101,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "international",
+      "note": "cross-border cardholders 18% -> 55%, heavy device churn",
+      "seed": 776,
+      "metrics": {
+        "fraud_recall": 0.6255144032921811,
+        "recall_with_review": 0.823045267489712,
+        "roc_auc": 0.9755218899634633,
+        "precision": 0.7835051546391752,
+        "f1": 0.6956521739130435,
+        "fpr": 0.001466582861931699,
+        "fnr": 0.37448559670781895,
+        "review_rate": 0.012291361128570431,
+        "average_precision": 0.7188161650939973,
+        "p50_latency_ms": 0.000375,
+        "p95_latency_ms": 0.000583,
+        "n_legit": 28638,
+        "n_fraud": 243
+      }
+    },
+    {
+      "world": "adversarial-mix",
+      "note": "every dimension shifted at once",
+      "seed": 777,
+      "metrics": {
+        "fraud_recall": 0.5802469135802469,
+        "recall_with_review": 0.8148148148148148,
+        "roc_auc": 0.8972847939166848,
+        "precision": 0.05535924617196702,
+        "f1": 0.10107526881720431,
+        "fpr": 0.0364137179525986,
+        "fnr": 0.41975308641975306,
+        "review_rate": 0.1001604261888186,
+        "average_precision": 0.24353557470967654,
+        "p50_latency_ms": 0.000416,
+        "p95_latency_ms": 0.000625,
+        "n_legit": 66074,
+        "n_fraud": 243
+      }
+    }
+  ]
+}

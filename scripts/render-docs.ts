@@ -19,6 +19,12 @@ const root = process.cwd();
 const ev = JSON.parse(readFileSync(path.join(root, "data/evidence/latest.json"), "utf8"));
 const bench = JSON.parse(readFileSync(path.join(root, "data/evidence/benchmark.json"), "utf8"));
 // optional: only present when someone has run `npm run evidence:live` with a key
+let robust: Record<string, never> | null = null;
+try {
+  robust = JSON.parse(readFileSync(path.join(root, "data/evidence/robustness.json"), "utf8"));
+} catch {
+  robust = null;
+}
 let live: Record<string, never> | null = null;
 try {
   live = JSON.parse(readFileSync(path.join(root, "data/evidence/live-run.json"), "utf8"));
@@ -58,6 +64,52 @@ const METRIC_ROWS: [string, keyof Metrics][] = [
   ["False-positive rate", "fpr"],
   ["Review rate", "review_rate"],
 ];
+
+/** World-misspecification study: same artifact, differently-shaped populations. */
+function robustSection(r: {
+  summary: Record<string, number>;
+  worlds: { world: string; note: string; metrics: Record<string, number> }[];
+}): string {
+  const rows = r.worlds.map(
+    (w) =>
+      `| \`${w.world}\` | ${w.note} | ${pc(w.metrics.roc_auc)} | ${pc(w.metrics.f1)} | ${pc(w.metrics.fpr, 3)} |`
+  );
+  const holds = r.worlds.filter((w) => w.metrics.fpr <= 0.005);
+  const breaks = r.worlds.filter((w) => w.metrics.fpr > 0.005);
+  return `The honest objection to a closed loop is that every number is measured inside one
+world, so the results could be an artefact of the distributions we chose. We cannot
+answer that with an authorized network extract. We can answer the part that matters:
+the detector is trained and threshold-calibrated on the \`calibrated\` world **only**,
+and then scored — **no retraining, no recalibration** — against populations reshaped
+along spend level, dispersion, cadence, newcomer share, cross-border share and device
+churn.
+
+| World | What changed | ROC-AUC | F1 | FPR |
+|---|---|---:|---:|---:|
+${rows.join("\n")}
+
+**It holds in ${holds.length} of ${r.worlds.length}, and it breaks in ${breaks.length} — and the failure is the useful part.**
+
+Ranking generalises everywhere: ROC-AUC never drops below ${pc(r.summary.roc_auc_min)} in any
+world. But in the high-frequency regimes the **operating point** collapses: false
+positives reach ${pc(r.summary.fpr_max, 2)}.
+
+The cause is specific and measurable. \`vel_1h\` and \`vel_24h\` are **absolute counts**,
+and both the learned weights and the hard decline rules (\`vel_1h >= 12\`, \`vel_1h >= 14\`)
+were calibrated against a population transacting about twice a day. Move that baseline
+to five a day and median \`vel_24h\` goes 2 → 5, and \`VELOCITY_HIGH\` false positives go
+**49 → 5,510** on legitimate traffic alone. The detector has not become worse at
+telling fraud from legitimate spend; the threshold has become wrong for the portfolio.
+
+That is a real production finding, not a simulator quirk: **a model tuned on one
+issuer's portfolio will over-decline on a higher-frequency one.** The fix is to
+normalise velocity against each customer's own trailing baseline rather than scoring
+raw counts, and to re-derive the operating point per portfolio. Both are named in the
+production roadmap. We are reporting it rather than quietly evaluating only on the
+world our thresholds happen to suit.
+
+Reproduce with \`npm run robustness\`; full record in \`data/evidence/robustness.json\`.`;
+}
 
 /** Recorded live-mode comparison: the model and the deterministic policy are
  *  handed the SAME parent and scored by the SAME Referee. */
@@ -206,6 +258,10 @@ separates the classes.
 ### What the model actually contributes
 
 ${live ? liveSection(live as never) : "_Not recorded in this build. Run `npm run evidence:live` with a provider key._"}
+
+### Does any of this survive outside our own world?
+
+${robust ? robustSection(robust as never) : "_Not recorded in this build. Run `npm run robustness`._"}
 
 ### Throughput
 
