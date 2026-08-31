@@ -19,8 +19,6 @@ commit=$(git rev-parse HEAD)
   git log -5 --oneline
   echo
   echo "## Recovery files"
-  echo "- docs/superpowers/specs/2026-08-22-adversarial-fraud-arena-design.md"
-  echo "- docs/superpowers/plans/2026-08-22-submission-completion.md"
   echo "- .codex-checkpoint.md"
   echo
   echo "Next command: npm run selfcheck"
