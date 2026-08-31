@@ -335,21 +335,29 @@ export default function Page() {
             </span>
           )}
           <span className="pill synthetic">Synthetic environment</span>
-          <button
-            className="pill mode"
-            type="button"
-            onClick={() => void reset(snap?.mode === "live" ? "demo" : "live")}
-            disabled={!!busy || !snap?.liveAvailable}
-            title={
-              snap?.liveAvailable
-                ? "Switch the reasoning layer between the deterministic expert policy and a live model. Resets the run."
-                : "Set OPENAI_API_KEY to enable live reasoning"
-            }
-            style={{ cursor: snap?.liveAvailable ? "pointer" : "not-allowed" }}
-          >
-            {snap?.mode === "live" ? "Live reasoning" : "Deterministic mode"}
-            {snap?.liveAvailable ? " · switch" : " · no key"}
-          </button>
+          {/* A disabled pill reading "no key" made the public build look broken.
+              It is a deliberate choice: a live provider key on a public URL is a
+              security risk, and the live-model run is committed as evidence. Say
+              that instead of implying something is missing. */}
+          {snap?.liveAvailable ? (
+            <button
+              className="pill mode"
+              type="button"
+              onClick={() => void reset(snap.mode === "live" ? "demo" : "live")}
+              disabled={!!busy}
+              title="Switch the reasoning layer between the deterministic expert policy and a live model. Resets the run."
+              style={{ cursor: "pointer" }}
+            >
+              {snap.mode === "live" ? "Live reasoning" : "Deterministic mode"} · switch
+            </button>
+          ) : (
+            <span
+              className="pill mode"
+              title="This public build runs the deterministic expert policy on purpose — a live provider key does not belong on a public URL. The reasoning layer is swappable, and a full recorded live-model run is committed at data/evidence/live-run.json."
+            >
+              Deterministic mode · live run recorded
+            </span>
+          )}
           <button className="btn" onClick={() => void reset()} disabled={!!busy}>Reset</button>
           <button className="btn primary" onClick={runGeneration} disabled={!!busy}>
             {busy === "Evolving attacks" ? "Evolving…" : "Run red team"}
