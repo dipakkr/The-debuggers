@@ -17,6 +17,8 @@ Fraud models learn from attacks that have already happened. The Arena generates 
 attack first, proves the detector misses it, and then proves a specific fix works —
 all against synthetic traffic, with a deterministic referee that neither AI can argue with.
 
+![The Adversarial Fraud Arena command centre, showing a confirmed detector blind spot](docs/images/01-command-centre.jpg)
+
 ## Team
 
 | Name | Registered email |
@@ -60,6 +62,13 @@ paired result at **p < 0.001**.
 That gap is the entire argument. A novel attack is not a calibration problem you can
 threshold your way out of; it is a missing-feature problem, and you only learn which
 feature is missing by generating the attack first.
+
+![Two precision/recall/F1 operating curves side by side. On known templates the curves separate cleanly and F1 peaks at the chosen threshold. On the evolved attack all three curves stay flat near zero across the entire threshold range.](docs/images/02-operating-curves.jpg)
+
+*Left: the detector against attacks it was trained on — precision and recall trade off
+cleanly and the swept threshold sits near the F1 peak. Right: the same detector against
+the attack the red team evolved. The curves stay flat across the **entire** range. No
+operating point rescues it.*
 
 ## Run it locally
 
@@ -136,6 +145,33 @@ Never commit a real API key. `.env` and `.env.*` are gitignored.
 The same loop runs on the deployed prototype and reproduces the committed
 evidence exactly: blind spot `AF-1013`, recall-with-review 44.44% → 70.00%,
 FPR 0.187% → 0.237%, 23 transactions newly caught and 0 newly missed.
+
+## The loop, screen by screen
+
+**1 · Red team — bounded evolution.** Every candidate is a schema-bounded genome.
+Generation N is mutated from N−1 using the detector's own reason codes, so the search is
+conditioned on measured outcomes rather than a script. Schema-invalid candidates are
+recorded and never simulated.
+
+![The red team evolution lineage table, showing each candidate with its family, generation, parent, evasion rate, fitness, novelty distance and the detector reason codes that drove the next mutation.](docs/images/03-red-team.jpg)
+
+**2 · Blue investigation — evidence, not guesswork.** The investigator sees only Referee
+output: false-negative feature medians, catch reasons, evasion rates. It proposes a
+bounded configuration change and cannot assert that the change worked.
+
+![The blue investigation view, showing a failure hypothesis, the measured false-negative feature medians it cites, and a schema-bounded proposed defense configuration.](docs/images/04-blue-investigation.jpg)
+
+**3 · Defense gate — the Referee decides.** Five deterministic budgets on fresh-seed
+held-out attacks the blue team never saw, a paired significance test, and an exact replay.
+
+![The defense gate showing an accepted verdict: recall including review rising from 44.44% to 70.00%, McNemar p below 0.001 with 23 newly caught and 0 newly missed, five acceptance budgets all passing, and five of five fresh-seed descendants improved.](docs/images/05-defense-gate.jpg)
+
+**4 · Threat intelligence — the IDENTIFY corpus.** 20 families across seven categories,
+each with the mechanism GenAI changes, the observable signal, the existing control and the
+specific blind spot. Simulated families are marked; the rest are documented with the sensor
+they would need rather than faked.
+
+![The threat intelligence view, grouping fraud families by channel with SIMULATED and RESEARCH badges, each card showing how GenAI changes the attack, its blind spot, observable signals and genome mapping.](docs/images/06-threat-intelligence.jpg)
 
 ## Architecture
 
