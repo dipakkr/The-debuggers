@@ -1,0 +1,1107 @@
+{
+  "generated_at": "2026-08-31T08:43:57.815Z",
+  "commit": "fbd6f4d9fffdd93c1b445e654cccdd7e990d937c",
+  "mode": "live",
+  "versions": {
+    "dataset_version": "synth-pop-1.3.0",
+    "attack_version": "genome-1.2.0",
+    "detector_version": "risk-engine-1.1.0",
+    "defense_version": "risk-engine-2.0.0",
+    "reasoning_version": "gpt-5"
+  },
+  "provider": {
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-5"
+  },
+  "note": "Every genome below was proposed by the model through the same strict schema the application uses, then scored by the same deterministic Referee that produces latest.json. The model proposed; code measured. No metric here was self-reported.",
+  "summary": {
+    "families": 5,
+    "model_proposals": 10,
+    "model_proposals_schema_valid": 10,
+    "model_mean_novelty": 4.657,
+    "policy_mean_novelty": 1.082,
+    "model_novel_count": 10,
+    "policy_novel_count": 1,
+    "model_evaded": 2,
+    "policy_evaded": 1,
+    "total_wall_clock_s": 144
+  },
+  "families": {
+    "card_testing_drain": {
+      "parent_genome": {
+        "family": "card_testing_drain",
+        "amount": {
+          "base": 500,
+          "jitter": 0.15,
+          "drain_multiplier": 1
+        },
+        "velocity": {
+          "tx_per_hour": 10
+        },
+        "temporal": {
+          "start_hour_utc": 2,
+          "span_hours": 1
+        },
+        "merchant": {
+          "mcc": "digital_goods",
+          "new_merchant": true
+        },
+        "device": {
+          "age_days": 0,
+          "geo_jump_km": 0
+        },
+        "identity": {
+          "account_age_days": 20
+        },
+        "sequence": {
+          "probe_count": 8,
+          "interarrival_s": 60,
+          "regularity": 0.3,
+          "drain_after_probe": true
+        },
+        "takeover": {
+          "victim_reuse": false,
+          "recon_tx_count": 0,
+          "dwell_hours": 0
+        },
+        "split": {
+          "count": 1,
+          "merchant_spread": 1,
+          "ceiling_ratio": 0.9
+        }
+      },
+      "model_latency_ms": 27348,
+      "model_returned": 2,
+      "candidates": [
+        {
+          "origin": "model",
+          "genome": {
+            "family": "card_testing_drain",
+            "amount": {
+              "base": 25,
+              "jitter": 0.05,
+              "drain_multiplier": 25
+            },
+            "velocity": {
+              "tx_per_hour": 12
+            },
+            "temporal": {
+              "start_hour_utc": 21,
+              "span_hours": 2
+            },
+            "merchant": {
+              "mcc": "online_retail",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 180,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 200
+            },
+            "sequence": {
+              "probe_count": 12,
+              "interarrival_s": 300,
+              "regularity": 0.7,
+              "drain_after_probe": true
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 6.268,
+          "fitness": 0.531,
+          "attack_success_rate": 0.23076923076923078,
+          "verdict": "caught",
+          "top_reasons": [
+            "CARD_TESTING_PROBES",
+            "VELOCITY_HIGH",
+            "VELOCITY_BURST"
+          ]
+        },
+        {
+          "origin": "model",
+          "genome": {
+            "family": "card_testing_drain",
+            "amount": {
+              "base": 750,
+              "jitter": 0.1,
+              "drain_multiplier": 2.5
+            },
+            "velocity": {
+              "tx_per_hour": 3
+            },
+            "temporal": {
+              "start_hour_utc": 5,
+              "span_hours": 8
+            },
+            "merchant": {
+              "mcc": "electronics",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 2,
+              "geo_jump_km": 1200
+            },
+            "identity": {
+              "account_age_days": 5
+            },
+            "sequence": {
+              "probe_count": 4,
+              "interarrival_s": 1200,
+              "regularity": 0.4,
+              "drain_after_probe": true
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 4.483,
+          "fitness": 0.3,
+          "attack_success_rate": 0,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "CARD_TESTING_PROBES",
+            "VELOCITY_HIGH"
+          ]
+        },
+        {
+          "origin": "policy",
+          "genome": {
+            "family": "card_testing_drain",
+            "amount": {
+              "base": 500,
+              "jitter": 0.05,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 10
+            },
+            "temporal": {
+              "start_hour_utc": 11,
+              "span_hours": 1
+            },
+            "merchant": {
+              "mcc": "digital_goods",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 0,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 20
+            },
+            "sequence": {
+              "probe_count": 8,
+              "interarrival_s": 60,
+              "regularity": 0.92,
+              "drain_after_probe": true
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": false,
+          "novelty": 1.178,
+          "fitness": 0.333,
+          "attack_success_rate": 0.3333333333333333,
+          "verdict": "caught",
+          "top_reasons": [
+            "CARD_TESTING_PROBES",
+            "VELOCITY_HIGH",
+            "VELOCITY_BURST"
+          ]
+        }
+      ]
+    },
+    "low_and_slow": {
+      "parent_genome": {
+        "family": "low_and_slow",
+        "amount": {
+          "base": 620,
+          "jitter": 0.15,
+          "drain_multiplier": 1
+        },
+        "velocity": {
+          "tx_per_hour": 4
+        },
+        "temporal": {
+          "start_hour_utc": 1,
+          "span_hours": 36
+        },
+        "merchant": {
+          "mcc": "electronics",
+          "new_merchant": true
+        },
+        "device": {
+          "age_days": 40,
+          "geo_jump_km": 0
+        },
+        "identity": {
+          "account_age_days": 25
+        },
+        "sequence": {
+          "probe_count": 0,
+          "interarrival_s": 7200,
+          "regularity": 0.3,
+          "drain_after_probe": false
+        },
+        "takeover": {
+          "victim_reuse": false,
+          "recon_tx_count": 0,
+          "dwell_hours": 0
+        },
+        "split": {
+          "count": 1,
+          "merchant_spread": 1,
+          "ceiling_ratio": 0.9
+        }
+      },
+      "model_latency_ms": 24277,
+      "model_returned": 2,
+      "candidates": [
+        {
+          "origin": "model",
+          "genome": {
+            "family": "low_and_slow",
+            "amount": {
+              "base": 580,
+              "jitter": 0.05,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 2
+            },
+            "temporal": {
+              "start_hour_utc": 9,
+              "span_hours": 96
+            },
+            "merchant": {
+              "mcc": "electronics",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 365,
+              "geo_jump_km": 30
+            },
+            "identity": {
+              "account_age_days": 400
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 5400,
+              "regularity": 0.8,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 3.015,
+          "fitness": 0.5,
+          "attack_success_rate": 0.2,
+          "verdict": "caught",
+          "top_reasons": [
+            "VELOCITY_HIGH",
+            "AMOUNT_ANOMALY",
+            "ODD_HOUR"
+          ]
+        },
+        {
+          "origin": "model",
+          "genome": {
+            "family": "low_and_slow",
+            "amount": {
+              "base": 220,
+              "jitter": 0.35,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 1
+            },
+            "temporal": {
+              "start_hour_utc": 22,
+              "span_hours": 168
+            },
+            "merchant": {
+              "mcc": "online_retail",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 7,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 14
+            },
+            "sequence": {
+              "probe_count": 1,
+              "interarrival_s": 3600,
+              "regularity": 0.2,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 2.194,
+          "fitness": 0.325,
+          "attack_success_rate": 0.025,
+          "verdict": "caught",
+          "top_reasons": [
+            "VELOCITY_HIGH",
+            "ODD_HOUR",
+            "VELOCITY_BURST"
+          ]
+        },
+        {
+          "origin": "policy",
+          "genome": {
+            "family": "low_and_slow",
+            "amount": {
+              "base": 384,
+              "jitter": 0.15,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 4
+            },
+            "temporal": {
+              "start_hour_utc": 13,
+              "span_hours": 36
+            },
+            "merchant": {
+              "mcc": "electronics",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 30,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 25
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 7200,
+              "regularity": 0.3,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": false,
+          "novelty": 0.62,
+          "fitness": 0.1,
+          "attack_success_rate": 0.1,
+          "verdict": "caught",
+          "top_reasons": [
+            "VELOCITY_HIGH",
+            "AMOUNT_ANOMALY",
+            "ODD_HOUR"
+          ]
+        }
+      ]
+    },
+    "mule_fanout": {
+      "parent_genome": {
+        "family": "mule_fanout",
+        "amount": {
+          "base": 280,
+          "jitter": 0.2,
+          "drain_multiplier": 1
+        },
+        "velocity": {
+          "tx_per_hour": 14
+        },
+        "temporal": {
+          "start_hour_utc": 14,
+          "span_hours": 24
+        },
+        "merchant": {
+          "mcc": "grocery",
+          "new_merchant": true
+        },
+        "device": {
+          "age_days": 2,
+          "geo_jump_km": 0
+        },
+        "identity": {
+          "account_age_days": 18
+        },
+        "sequence": {
+          "probe_count": 0,
+          "interarrival_s": 300,
+          "regularity": 0.5,
+          "drain_after_probe": false
+        },
+        "takeover": {
+          "victim_reuse": false,
+          "recon_tx_count": 0,
+          "dwell_hours": 0
+        },
+        "split": {
+          "count": 1,
+          "merchant_spread": 1,
+          "ceiling_ratio": 0.9
+        }
+      },
+      "model_latency_ms": 26589,
+      "model_returned": 2,
+      "candidates": [
+        {
+          "origin": "model",
+          "genome": {
+            "family": "mule_fanout",
+            "amount": {
+              "base": 260,
+              "jitter": 0.25,
+              "drain_multiplier": 1.2
+            },
+            "velocity": {
+              "tx_per_hour": 13
+            },
+            "temporal": {
+              "start_hour_utc": 22,
+              "span_hours": 30
+            },
+            "merchant": {
+              "mcc": "online_retail",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 3,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 25
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 330,
+              "regularity": 0.7,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 5,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 3.344,
+          "fitness": 0.3,
+          "attack_success_rate": 0,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "VELOCITY_HIGH",
+            "VELOCITY_BURST"
+          ]
+        },
+        {
+          "origin": "model",
+          "genome": {
+            "family": "mule_fanout",
+            "amount": {
+              "base": 300,
+              "jitter": 0.15,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 18
+            },
+            "temporal": {
+              "start_hour_utc": 5,
+              "span_hours": 18
+            },
+            "merchant": {
+              "mcc": "digital_goods",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 0,
+              "geo_jump_km": 900
+            },
+            "identity": {
+              "account_age_days": 45
+            },
+            "sequence": {
+              "probe_count": 1,
+              "interarrival_s": 200,
+              "regularity": 0.9,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 4,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 4.389,
+          "fitness": 0.967,
+          "attack_success_rate": 0.6666666666666666,
+          "verdict": "evaded",
+          "top_reasons": [
+            "AMOUNT_ANOMALY",
+            "NEW_DEVICE",
+            "VELOCITY_HIGH"
+          ]
+        },
+        {
+          "origin": "policy",
+          "genome": {
+            "family": "mule_fanout",
+            "amount": {
+              "base": 280,
+              "jitter": 0.2,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 14
+            },
+            "temporal": {
+              "start_hour_utc": 14,
+              "span_hours": 24
+            },
+            "merchant": {
+              "mcc": "grocery",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 30,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 54
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 300,
+              "regularity": 0.5,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": false,
+          "novelty": 0.464,
+          "fitness": 0.056,
+          "attack_success_rate": 0.05555555555555555,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "VELOCITY_HIGH",
+            "VELOCITY_BURST"
+          ]
+        }
+      ]
+    },
+    "account_takeover": {
+      "parent_genome": {
+        "family": "account_takeover",
+        "amount": {
+          "base": 600,
+          "jitter": 0.2,
+          "drain_multiplier": 4
+        },
+        "velocity": {
+          "tx_per_hour": 8
+        },
+        "temporal": {
+          "start_hour_utc": 3,
+          "span_hours": 6
+        },
+        "merchant": {
+          "mcc": "electronics",
+          "new_merchant": true
+        },
+        "device": {
+          "age_days": 0,
+          "geo_jump_km": 5200
+        },
+        "identity": {
+          "account_age_days": 800
+        },
+        "sequence": {
+          "probe_count": 0,
+          "interarrival_s": 300,
+          "regularity": 0.4,
+          "drain_after_probe": false
+        },
+        "takeover": {
+          "victim_reuse": true,
+          "recon_tx_count": 3,
+          "dwell_hours": 2
+        },
+        "split": {
+          "count": 1,
+          "merchant_spread": 1,
+          "ceiling_ratio": 0.9
+        }
+      },
+      "model_latency_ms": 30373,
+      "model_returned": 2,
+      "candidates": [
+        {
+          "origin": "model",
+          "genome": {
+            "family": "account_takeover",
+            "amount": {
+              "base": 550,
+              "jitter": 0.1,
+              "drain_multiplier": 3
+            },
+            "velocity": {
+              "tx_per_hour": 5
+            },
+            "temporal": {
+              "start_hour_utc": 18,
+              "span_hours": 12
+            },
+            "merchant": {
+              "mcc": "online_retail",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 420,
+              "geo_jump_km": 25
+            },
+            "identity": {
+              "account_age_days": 820
+            },
+            "sequence": {
+              "probe_count": 1,
+              "interarrival_s": 900,
+              "regularity": 0.6,
+              "drain_after_probe": true
+            },
+            "takeover": {
+              "victim_reuse": true,
+              "recon_tx_count": 1,
+              "dwell_hours": 24
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 7.514,
+          "fitness": 1.3,
+          "attack_success_rate": 1,
+          "verdict": "evaded",
+          "top_reasons": []
+        },
+        {
+          "origin": "model",
+          "genome": {
+            "family": "account_takeover",
+            "amount": {
+              "base": 450,
+              "jitter": 0.15,
+              "drain_multiplier": 5
+            },
+            "velocity": {
+              "tx_per_hour": 10
+            },
+            "temporal": {
+              "start_hour_utc": 1,
+              "span_hours": 3
+            },
+            "merchant": {
+              "mcc": "digital_goods",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 0,
+              "geo_jump_km": 8900
+            },
+            "identity": {
+              "account_age_days": 120
+            },
+            "sequence": {
+              "probe_count": 2,
+              "interarrival_s": 120,
+              "regularity": 0.9,
+              "drain_after_probe": true
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 4.856,
+          "fitness": 0.3,
+          "attack_success_rate": 0,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "AMOUNT_ANOMALY",
+            "VELOCITY_HIGH"
+          ]
+        },
+        {
+          "origin": "policy",
+          "genome": {
+            "family": "account_takeover",
+            "amount": {
+              "base": 600,
+              "jitter": 0.2,
+              "drain_multiplier": 4
+            },
+            "velocity": {
+              "tx_per_hour": 8
+            },
+            "temporal": {
+              "start_hour_utc": 3,
+              "span_hours": 6
+            },
+            "merchant": {
+              "mcc": "electronics",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 30,
+              "geo_jump_km": 5200
+            },
+            "identity": {
+              "account_age_days": 800
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 300,
+              "regularity": 0.4,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": true,
+              "recon_tx_count": 3,
+              "dwell_hours": 2
+            },
+            "split": {
+              "count": 1,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.9
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 2.099,
+          "fitness": 0.3,
+          "attack_success_rate": 0,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "VELOCITY_HIGH",
+            "AMOUNT_ANOMALY"
+          ]
+        }
+      ]
+    },
+    "transaction_splitting": {
+      "parent_genome": {
+        "family": "transaction_splitting",
+        "amount": {
+          "base": 1000,
+          "jitter": 0.03,
+          "drain_multiplier": 1
+        },
+        "velocity": {
+          "tx_per_hour": 6
+        },
+        "temporal": {
+          "start_hour_utc": 11,
+          "span_hours": 12
+        },
+        "merchant": {
+          "mcc": "online_retail",
+          "new_merchant": true
+        },
+        "device": {
+          "age_days": 60,
+          "geo_jump_km": 0
+        },
+        "identity": {
+          "account_age_days": 200
+        },
+        "sequence": {
+          "probe_count": 0,
+          "interarrival_s": 3600,
+          "regularity": 0.7,
+          "drain_after_probe": false
+        },
+        "takeover": {
+          "victim_reuse": false,
+          "recon_tx_count": 0,
+          "dwell_hours": 0
+        },
+        "split": {
+          "count": 8,
+          "merchant_spread": 4,
+          "ceiling_ratio": 0.92
+        }
+      },
+      "model_latency_ms": 32791,
+      "model_returned": 2,
+      "candidates": [
+        {
+          "origin": "model",
+          "genome": {
+            "family": "transaction_splitting",
+            "amount": {
+              "base": 950,
+              "jitter": 0.12,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 1
+            },
+            "temporal": {
+              "start_hour_utc": 1,
+              "span_hours": 16
+            },
+            "merchant": {
+              "mcc": "digital_goods",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 300,
+              "geo_jump_km": 800
+            },
+            "identity": {
+              "account_age_days": 900
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 3600,
+              "regularity": 0.25,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 16,
+              "merchant_spread": 8,
+              "ceiling_ratio": 0.95
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 4.957,
+          "fitness": 0.363,
+          "attack_success_rate": 0.0625,
+          "verdict": "caught",
+          "top_reasons": [
+            "VELOCITY_HIGH",
+            "AMOUNT_ANOMALY",
+            "STRUCTURING_BAND"
+          ]
+        },
+        {
+          "origin": "model",
+          "genome": {
+            "family": "transaction_splitting",
+            "amount": {
+              "base": 1050,
+              "jitter": 0.005,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 20
+            },
+            "temporal": {
+              "start_hour_utc": 23,
+              "span_hours": 1
+            },
+            "merchant": {
+              "mcc": "electronics",
+              "new_merchant": false
+            },
+            "device": {
+              "age_days": 1200,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 1200
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 180,
+              "regularity": 0.95,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 20,
+              "merchant_spread": 1,
+              "ceiling_ratio": 0.99
+            }
+          },
+          "schema_valid": true,
+          "novel": true,
+          "novelty": 5.547,
+          "fitness": 0.35,
+          "attack_success_rate": 0.05,
+          "verdict": "caught",
+          "top_reasons": [
+            "ODD_HOUR",
+            "VELOCITY_HIGH",
+            "VELOCITY_BURST"
+          ]
+        },
+        {
+          "origin": "policy",
+          "genome": {
+            "family": "transaction_splitting",
+            "amount": {
+              "base": 550,
+              "jitter": 0.03,
+              "drain_multiplier": 1
+            },
+            "velocity": {
+              "tx_per_hour": 3
+            },
+            "temporal": {
+              "start_hour_utc": 11,
+              "span_hours": 36
+            },
+            "merchant": {
+              "mcc": "online_retail",
+              "new_merchant": true
+            },
+            "device": {
+              "age_days": 60,
+              "geo_jump_km": 0
+            },
+            "identity": {
+              "account_age_days": 200
+            },
+            "sequence": {
+              "probe_count": 0,
+              "interarrival_s": 18000,
+              "regularity": 0.7,
+              "drain_after_probe": false
+            },
+            "takeover": {
+              "victim_reuse": false,
+              "recon_tx_count": 0,
+              "dwell_hours": 0
+            },
+            "split": {
+              "count": 8,
+              "merchant_spread": 4,
+              "ceiling_ratio": 0.7000000000000001
+            }
+          },
+          "schema_valid": true,
+          "novel": false,
+          "novelty": 1.051,
+          "fitness": 0.75,
+          "attack_success_rate": 0.75,
+          "verdict": "evaded",
+          "top_reasons": [
+            "ODD_HOUR",
+            "VELOCITY_HIGH",
+            "AMOUNT_ANOMALY"
+          ]
+        }
+      ]
+    }
+  }
+}

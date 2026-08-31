@@ -18,6 +18,13 @@ interface Metrics {
 const root = process.cwd();
 const ev = JSON.parse(readFileSync(path.join(root, "data/evidence/latest.json"), "utf8"));
 const bench = JSON.parse(readFileSync(path.join(root, "data/evidence/benchmark.json"), "utf8"));
+// optional: only present when someone has run `npm run evidence:live` with a key
+let live: Record<string, never> | null = null;
+try {
+  live = JSON.parse(readFileSync(path.join(root, "data/evidence/live-run.json"), "utf8"));
+} catch {
+  live = null;
+}
 
 const pc = (x: number, d = 2) => `${(x * 100).toFixed(d)}%`;
 const pts = (x: number, d = 2) => `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(d)} pts`;
@@ -42,6 +49,42 @@ const METRIC_ROWS: [string, keyof Metrics][] = [
   ["False-positive rate", "fpr"],
   ["Review rate", "review_rate"],
 ];
+
+/** Recorded live-mode comparison: the model and the deterministic policy are
+ *  handed the SAME parent and scored by the SAME Referee. */
+function liveSection(l: {
+  provider: { model: string }; summary: Record<string, number>;
+  families: Record<string, { model_latency_ms: number; candidates: { origin: string; novelty: number; verdict: string; novel: boolean }[] }>;
+}): string {
+  const s = l.summary;
+  const rows = Object.entries(l.families).map(([fam, f]) => {
+    const m = f.candidates.filter((c) => c.origin === "model");
+    const p = f.candidates.find((c) => c.origin === "policy");
+    return `| \`${fam}\` | ${m.map((x) => x.novelty.toFixed(2)).join(", ") || "—"} | ${p ? p.novelty.toFixed(2) : "—"} | ${(f.model_latency_ms / 1000).toFixed(1)}s |`;
+  });
+  return `Recorded with \`npm run evidence:live\` against \`${l.provider.model}\`. For every family the
+model and the deterministic policy are handed the **same parent** and scored by the **same
+Referee** — the model proposes, code measures, and no number here is self-reported.
+
+| Metric | Model | Deterministic policy |
+|---|---:|---:|
+| Proposals returned | ${s.model_proposals} | ${s.families} |
+| Schema-valid | ${s.model_proposals_schema_valid} of ${s.model_proposals} | — |
+| Mean novelty distance | **${s.model_mean_novelty}** | ${s.policy_mean_novelty} |
+| Counted novel (τ = 1.2) | ${s.model_novel_count} | ${s.policy_novel_count} |
+| Evaded the detector immediately | ${s.model_evaded} | ${s.policy_evaded} |
+
+| Family | Model novelty | Policy novelty | Model latency |
+|---|---:|---:|---:|
+${rows.join("\n")}
+
+The model explores roughly **${(s.model_mean_novelty / Math.max(0.01, s.policy_mean_novelty)).toFixed(1)}× further** from the known templates than the hand-written
+policy, and every proposal it returned passed the bounded genome schema. That is the
+concrete answer to "why do you need GenAI here": the policy encodes what we already
+thought of, and the model reaches regions we did not.
+
+Full record, including every proposed genome: \`data/evidence/live-run.json\`.`;
+}
 
 /* --------------------------------------------------------- headline block */
 
@@ -150,6 +193,10 @@ under a ${pc(0.003, 1)} false-positive ceiling. The previous calibration took a 
 percentile of legitimate scores, which pins the false-positive rate at roughly 2% by
 construction and caps precision in the single digits regardless of how well the model
 separates the classes.
+
+### What the model actually contributes
+
+${live ? liveSection(live as never) : "_Not recorded in this build. Run `npm run evidence:live` with a provider key._"}
 
 ### Throughput
 

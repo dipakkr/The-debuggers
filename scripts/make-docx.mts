@@ -98,6 +98,15 @@ interface Evidence {
   };
 }
 
+interface LiveRun {
+  provider: { model: string };
+  summary: Record<string, number>;
+  families: Record<string, {
+    model_latency_ms: number;
+    candidates: { origin: string; novelty: number; verdict: string; novel: boolean }[];
+  }>;
+}
+
 interface Benchmark {
   generated_at: string;
   results: Array<{
@@ -120,6 +129,13 @@ const evidence = JSON.parse(
 const benchmark = JSON.parse(
   readFileSync("data/evidence/benchmark.json", "utf8")
 ) as Benchmark;
+// optional: only present when `npm run evidence:live` has been run with a key
+let live: LiveRun | null = null;
+try {
+  live = JSON.parse(readFileSync("data/evidence/live-run.json", "utf8")) as LiveRun;
+} catch {
+  live = null;
+}
 
 const PAGE_WIDTH = 12_240;
 const PAGE_HEIGHT = 15_840;
@@ -859,7 +875,55 @@ push(
 
 push(
   pageBreak(),
-  h1("11. Adversarial Robustness"),
+  h1("11. What the Model Actually Contributes"),
+  p(
+    "The reasoning layer is swappable: a deterministic expert policy in demo mode, a live model in live mode. That raises the fair question of whether the model earns its place. This section answers it with a recorded run rather than an assertion."
+  ),
+  p(
+    "For every attack family the model and the deterministic policy are handed the SAME parent genome and scored by the SAME Referee. The model proposes; code measures. No number in this table is self-reported."
+  ),
+  live
+    ? table(
+        [
+          ["Metric", "Model", "Deterministic policy"],
+          ["Proposals returned", String(live.summary.model_proposals), String(live.summary.families)],
+          ["Schema-valid", `${live.summary.model_proposals_schema_valid} of ${live.summary.model_proposals}`, "n/a"],
+          ["Mean novelty distance", String(live.summary.model_mean_novelty), String(live.summary.policy_mean_novelty)],
+          ["Counted novel (tau = 1.2)", String(live.summary.model_novel_count), String(live.summary.policy_novel_count)],
+          ["Evaded the detector immediately", String(live.summary.model_evaded), String(live.summary.policy_evaded)],
+        ],
+        [3_620, 2_750, 2_750]
+      )
+    : p("Not recorded in this build.", { italics: true }),
+  live
+    ? note(
+        "WHY GENAI IS NECESSARY",
+        `The model explores roughly ${(live.summary.model_mean_novelty / Math.max(0.01, live.summary.policy_mean_novelty)).toFixed(1)} times further from the known templates than the hand-written policy, and every proposal it returned passed the bounded genome schema. The policy encodes what we already thought of; the model reaches regions we did not. Recorded against ${live.provider.model}; the full record, including every proposed genome, is in data/evidence/live-run.json.`
+      )
+    : p(""),
+  live
+    ? table(
+        [
+          ["Family", "Model novelty", "Policy novelty", "Latency"],
+          ...Object.entries(live.families).map(([fam, f]) => [
+            fam,
+            f.candidates.filter((c) => c.origin === "model").map((c) => c.novelty.toFixed(2)).join(", ") || "none",
+            (f.candidates.find((c) => c.origin === "policy")?.novelty ?? 0).toFixed(2),
+            `${(f.model_latency_ms / 1000).toFixed(1)}s`,
+          ]),
+        ],
+        [3_000, 2_400, 2_100, 1_620]
+      )
+    : p(""),
+  p(
+    "The failure that produced this section is worth stating. The strategist prompt originally told the model to stay inside the documented bounds without ever listing them, so it guessed, its proposals were rejected by the schema, and the arena silently fell back to the policy. Two of five families returned nothing usable. Spelling the bounds out took every family to a full set of schema-valid proposals.",
+    { italics: true }
+  )
+);
+
+push(
+  pageBreak(),
+  h1("12. Adversarial Robustness"),
   p(
     "The Referee created five fresh descendants after the Blue proposal. Red never used these seeds during search, and Blue never saw them."
   ),
@@ -920,7 +984,7 @@ push(
 
 push(
   pageBreak(),
-  h1("12. Security and Responsible AI"),
+  h1("13. Security and Responsible AI"),
   p(
     "All entities, credentials, merchants, devices, and payment events are synthetic. The Arena never connects to a production payment system."
   ),
@@ -946,7 +1010,7 @@ push(
 
 push(
   pageBreak(),
-  h1("13. Scalability"),
+  h1("14. Scalability"),
   p(
     `The benchmark used five trials per scale on ${benchmark.results[0].node} and ${benchmark.results[0].platform}.`
   ),
@@ -977,7 +1041,7 @@ push(
 );
 
 push(
-  h1("14. Product Experience"),
+  h1("15. Product Experience"),
   p(
     "The interface uses a payment-security command center instead of a generic analytics dashboard. The battle itself is the product."
   ),
@@ -1012,7 +1076,7 @@ push(
 );
 
 push(
-  h1("15. Architecture"),
+  h1("16. Architecture"),
   table(
     [
       ["System flow"],
@@ -1048,7 +1112,7 @@ push(
 
 push(
   pageBreak(),
-  h1("16. Limitations"),
+  h1("17. Limitations"),
   bullet("The synthetic population does not represent every real payment distribution."),
   bullet("The final test uses fresh seeds from the same simulator family."),
   bullet("The graph signal covers merchant convergence, not a full network graph."),
@@ -1057,7 +1121,7 @@ push(
   bullet("A single block threshold cannot be simultaneously optimal for loud templates and for an attack evolved to sit beneath it. That tension is measured and disclosed, and it is the reason the Arena exists."),
   bullet("Sessions are cookie-scoped and in-memory, which is adequate for a shared demo but not for a multi-replica deployment."),
   bullet("Measured throughput excludes network and durable-storage costs."),
-  h1("17. Production Roadmap"),
+  h1("18. Production Roadmap"),
   numbered("Calibrate the simulator with authorized and privacy-protected network distributions.", 2),
   numbered("Move experiment state to durable, versioned storage.", 2),
   numbered("Run isolated search workers with strict quotas and policy controls.", 2),
@@ -1070,7 +1134,7 @@ push(
 );
 
 push(
-  h1("18. Reproduction Instructions"),
+  h1("19. Reproduction Instructions"),
   numbered("Clone the public repository.", 3),
   numbered("Use Node.js 22.", 3),
   numbered("Run npm ci.", 3),
@@ -1085,12 +1149,12 @@ push(
   p(
     "Use npm run handoff to create a secret-free continuation brief for another coding agent."
   ),
-  h1("19. GitHub Repository"),
+  h1("20. GitHub Repository"),
   p(repoUrl, { bold: true, color: BLUE }),
   p(
     "The repository includes the source, tests, evidence JSON, benchmark JSON, methodology, threat model, responsible AI statement, and this walkthrough."
   ),
-  h1("20. Web Prototype"),
+  h1("21. Web Prototype"),
   p(webUrl, { bold: true, color: BLUE }),
   p(
     "The public deployment uses Demo mode by default. The deployment does not need an API key to run the complete judge flow."

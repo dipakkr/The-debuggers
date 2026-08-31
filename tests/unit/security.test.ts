@@ -221,3 +221,15 @@ describe("secrets never leave the machine", () => {
     expect(serialize).toContain("liveModeAvailable()");
   });
 });
+
+describe("strategist prompt completeness", () => {
+  it("states the actual bounds instead of referring to bounds it never shows", () => {
+    const engine = readFileSync("lib/mutations/engine.ts", "utf8");
+    // "stay inside the documented bounds" without listing them made the model
+    // guess; its proposals failed the schema and looked like a provider outage.
+    // card_testing_drain returned zero usable proposals until this was added.
+    expect(engine).toContain("GENOME_BOUNDS");
+    expect(engine).toContain("amount.base: 1..2000");
+    expect(engine).toContain("split.ceiling_ratio: 0.5..0.99");
+  });
+});

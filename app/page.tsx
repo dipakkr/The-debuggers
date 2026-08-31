@@ -513,6 +513,26 @@ function CommandCentre({
               </tbody>
             </table>
           </div>
+          <div className="body" style={{ borderTop: "1px solid var(--line)" }}>
+            <p className="note">
+              <strong>Read the middle column carefully.</strong> The evolved attack scores
+              worse than the known templates, and no threshold fixes that — on this attack
+              v1&apos;s F1 stays under 15% across the <em>entire</em> score range, so lowering the
+              bar buys false positives rather than recall.{" "}
+              <button
+                onClick={() => onOpen("detector")}
+                style={{
+                  background: "none", border: 0, padding: 0, cursor: "pointer",
+                  color: "var(--info)", font: "inherit", textDecoration: "underline",
+                }}
+              >
+                See the operating curves
+              </button>
+              . That gap is the whole argument: a novel attack is a <strong>missing-feature</strong>
+              {" "}problem, not a calibration problem — and you only learn which feature is
+              missing by generating the attack first.
+            </p>
+          </div>
         </div>
 
         <div className="card">

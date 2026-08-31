@@ -229,6 +229,35 @@ percentile of legitimate scores, which pins the false-positive rate at roughly 2
 construction and caps precision in the single digits regardless of how well the model
 separates the classes.
 
+### What the model actually contributes
+
+Recorded with `npm run evidence:live` against `gpt-5`. For every family the
+model and the deterministic policy are handed the **same parent** and scored by the **same
+Referee** — the model proposes, code measures, and no number here is self-reported.
+
+| Metric | Model | Deterministic policy |
+|---|---:|---:|
+| Proposals returned | 10 | 5 |
+| Schema-valid | 10 of 10 | — |
+| Mean novelty distance | **4.657** | 1.082 |
+| Counted novel (τ = 1.2) | 10 | 1 |
+| Evaded the detector immediately | 2 | 1 |
+
+| Family | Model novelty | Policy novelty | Model latency |
+|---|---:|---:|---:|
+| `card_testing_drain` | 6.27, 4.48 | 1.18 | 27.3s |
+| `low_and_slow` | 3.02, 2.19 | 0.62 | 24.3s |
+| `mule_fanout` | 3.34, 4.39 | 0.46 | 26.6s |
+| `account_takeover` | 7.51, 4.86 | 2.10 | 30.4s |
+| `transaction_splitting` | 4.96, 5.55 | 1.05 | 32.8s |
+
+The model explores roughly **4.3× further** from the known templates than the hand-written
+policy, and every proposal it returned passed the bounded genome schema. That is the
+concrete answer to "why do you need GenAI here": the policy encodes what we already
+thought of, and the model reaches regions we did not.
+
+Full record, including every proposed genome: `data/evidence/live-run.json`.
+
 ### Throughput
 
 5 trials per scale on Node.js `v25.1.0`, `darwin-arm64`, single process.

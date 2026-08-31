@@ -60,3 +60,13 @@ describe("judge-facing UI contract", () => {
     expect(css).toContain("minmax(");
   });
 });
+
+describe("the central argument is where a skimming judge will read it", () => {
+  it("explains the low held-out numbers next to the numbers themselves", () => {
+    // the argument used to live only in the detection tab and mid-README, so a
+    // judge saw the weak-looking figures and never the reason for them
+    expect(page).toContain("missing-feature");
+    expect(page).toContain("across the");
+    expect(page).toContain("See the operating curves");
+  });
+});

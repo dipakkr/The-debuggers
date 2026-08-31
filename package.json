@@ -10,6 +10,7 @@
     "train": "tsx scripts/train.ts",
     "bench": "tsx scripts/bench.ts",
     "evidence": "tsx scripts/evidence.ts",
+    "evidence:live": "tsx scripts/live-evidence.ts",
     "demo": "npm run build && npm run start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
